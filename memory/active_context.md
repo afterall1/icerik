@@ -1,40 +1,38 @@
 # Active Context - İçerik Trend Engine
 
-> **Son Güncelleme**: 22 Ocak 2026, 23:07  
-> **Aktif Faz**: Post-MVP Polish  
-> **Son Commit**: `bbbc952` - 4-phase MVP enhancement
+> **Son Güncelleme**: 22 Ocak 2026, 23:35  
+> **Aktif Faz**: Post-MVP Enhancement  
+> **Son Commit**: `fac85f4` - ScriptGenerator UI, React Query Migration
 
 ---
 
 ## 🎯 Current Focus
 
-MVP tamamlandı. Şu an proje stabil durumda ve production-ready.
+ScriptGenerator UI ve React Query migration tamamlandı. Proje production-ready.
 
 ---
 
 ## ✅ Son Tamamlanan İşler
 
-### 22 Ocak 2026 - 4-Phase MVP Enhancement
-1. **Phase 1: SQLite Caching Layer**
-   - `better-sqlite3` ile WAL mode cache
-   - TTL-based expiration (5 dakika trends, 10 dakika summary)
-   - X-Cache headers (HIT/MISS/BYPASS)
-   - Request logging for analytics
+### 22 Ocak 2026 - Gece Oturumu (Supreme Council)
 
-2. **Phase 2: Background Polling Worker**
-   - Tier-based scheduler (5/15/30 min)
-   - Graceful shutdown (SIGTERM, SIGINT)
-   - `--with-worker` flag ile başlatma
+1. **ScriptGenerator UI Component** (~800 satır)
+   - `ScriptGeneratorModal.tsx` - Format/platform/ton/dil seçimi
+   - `ScriptPreview.tsx` - Collapsible sections, copy functionality
+   - `TrendCard.tsx` - "Script Oluştur" hover button
+   - `api.ts` - AI types ve aiApi methods
+   - `hooks.ts` - useScriptGenerator, useVideoFormats, useAIStatus
 
-3. **Phase 3: Dashboard Polish**
-   - ErrorBoundary + Skeleton components
-   - React Query entegrasyonu
-   - Shimmer loading animations
+2. **React Query Migration**
+   - `TrendExplorer.tsx` refactored to use existing hooks
+   - Removed ~50 lines of useState/useEffect boilerplate
+   - Query invalidation on refresh
 
-4. **Phase 4: AI Content Script Generation**
-   - Gemini API client with rate limiting
-   - ScriptGenerator with category prompts
-   - Video format templates
+3. **Mobile Responsive Utilities**
+   - Touch-target classes (44px minimum)
+   - Safe-area support for notched devices
+   - Modal-mobile-fullscreen CSS class
+   - SlideUp animation for mobile sheets
 
 ---
 
@@ -42,7 +40,7 @@ MVP tamamlandı. Şu an proje stabil durumda ve production-ready.
 
 | Feature | Status | Missing |
 |---------|--------|---------|
-| ScriptGenerator UI | ❌ | Frontend component for AI script generation |
+| Unit Tests | ❌ | useScriptGenerator hook tests |
 | Docker Config | ❌ | Dockerfile + docker-compose |
 | CI/CD | ❌ | GitHub Actions pipeline |
 | E2E Tests | ❌ | Playwright/Cypress tests |
@@ -51,23 +49,23 @@ MVP tamamlandı. Şu an proje stabil durumda ve production-ready.
 
 ## 🏗️ Architectural Notes
 
-1. **SQLite over Redis**: MVP için external dependency gereksiz. Gerekirse migrate edilebilir.
-2. **Dynamic AI Import**: `routes.ts`'de AI modülü lazy import yapıldı - sadece ihtiyaç olduğunda yüklenir.
-3. **Category Video Formats**: `@icerik/shared` içinde CATEGORY_VIDEO_FORMATS ile merkezi yönetim.
+1. **ScriptGeneratorModal**: Full-featured modal with React Query mutation
+2. **React Query Migration**: Hooks existed, TrendExplorer now uses them
+3. **Mobile CSS**: Utility classes added to index.css, not applied globally yet
 
 ---
 
 ## 📅 Next Session Priorities
 
-1. [ ] ScriptGenerator.tsx UI component
-2. [ ] TrendExplorer'a React Query migration
-3. [ ] Mobile responsive testing
-4. [ ] npm install çalıştırma (yeni dependencies)
+1. [ ] Unit tests for useScriptGenerator hook
+2. [ ] E2E test for script generation flow
+3. [ ] Docker configuration
+4. [ ] npm run dev test - verify end-to-end flow
 
 ---
 
 ## 📁 Docs to Update (Next Session)
 
-- [ ] `api/endpoints.md` - Yeni AI endpoints ekle
-- [ ] `implementation/ai_integration.md` - Script generator logic
-- [ ] `changelog.md` - v1.0.0 release notes
+- [ ] `memory/implementation/ai_integration.md` - NEW file detailing AI setup
+- [ ] `memory/api/endpoints.md` - Already complete
+

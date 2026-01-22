@@ -153,3 +153,61 @@ export function useTrendsLoading() {
     const queryClient = useQueryClient();
     return queryClient.isFetching({ queryKey: queryKeys.all }) > 0;
 }
+
+// ============================================================
+// AI Script Generation Hooks
+// ============================================================
+
+import { aiApi, type GeneratedScript, type GenerateScriptRequest, type AIStatus, type VideoFormat } from './api';
+
+/**
+ * Query keys for AI operations
+ */
+export const aiQueryKeys = {
+    all: ['ai'] as const,
+    status: () => [...aiQueryKeys.all, 'status'] as const,
+    formats: (category: string) => [...aiQueryKeys.all, 'formats', category] as const,
+};
+
+/**
+ * Hook to generate a video script from a trend
+ * 
+ * @example
+ * const { mutate: generateScript, isPending, error, data } = useScriptGenerator();
+ * generateScript({ trend, options: { format: 'Commentary', platform: 'tiktok' } });
+ */
+export function useScriptGenerator() {
+    return useMutation<GeneratedScript, Error, GenerateScriptRequest>({
+        mutationFn: (request) => aiApi.generateScript(request),
+        retry: false, // Don't retry script generation on failure
+        onError: (error) => {
+            console.error('Script generation failed:', error.message);
+        },
+    });
+}
+
+/**
+ * Hook to get AI service status
+ */
+export function useAIStatus(enabled = true) {
+    return useQuery<AIStatus, Error>({
+        queryKey: aiQueryKeys.status(),
+        queryFn: () => aiApi.getStatus(),
+        staleTime: 30 * 1000, // 30 seconds
+        refetchInterval: enabled ? 60 * 1000 : false, // Refetch every minute when enabled
+        enabled,
+    });
+}
+
+/**
+ * Hook to get available video formats for a category
+ */
+export function useVideoFormats(category: string | null) {
+    return useQuery<VideoFormat[], Error>({
+        queryKey: aiQueryKeys.formats(category || ''),
+        queryFn: () => aiApi.getFormatsForCategory(category!),
+        staleTime: 5 * 60 * 1000, // 5 minutes (formats rarely change)
+        enabled: !!category,
+    });
+}
+

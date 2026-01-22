@@ -1,16 +1,26 @@
+/**
+ * TrendCard Component
+ * 
+ * Displays a trend item with engagement metrics and script generation button.
+ * 
+ * @module components/molecules/TrendCard
+ */
+
 import { Card, Badge } from '../atoms';
-import { ArrowUp, MessageCircle, Clock, Flame } from 'lucide-react';
+import { ArrowUp, MessageCircle, Clock, Flame, Sparkles } from 'lucide-react';
 
 interface TrendCardProps {
     id: string;
     title: string;
     subreddit: string;
+    category: string;
     nes: number;
     score: number;
     numComments: number;
     upvoteRatio: number;
     ageHours: number;
     permalink: string;
+    onGenerateScript?: () => void;
 }
 
 function formatNumber(num: number): string {
@@ -49,6 +59,7 @@ export function TrendCard({
     upvoteRatio,
     ageHours,
     permalink,
+    onGenerateScript,
 }: TrendCardProps) {
     return (
         <Card padding="md" className="group">
@@ -81,11 +92,28 @@ export function TrendCard({
                 <div className="flex items-center gap-1 text-green-400">
                     <span>{Math.round(upvoteRatio * 100)}%</span>
                 </div>
-                <div className="flex items-center gap-1 ml-auto">
+                <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     <span>{formatAge(ageHours)}</span>
                 </div>
+
+                {/* Script Generate Button */}
+                {onGenerateScript && (
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onGenerateScript();
+                        }}
+                        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-300 bg-indigo-900/40 hover:bg-indigo-800/60 border border-indigo-700/50 hover:border-indigo-600 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        title="AI ile script oluştur"
+                    >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Script Oluştur
+                    </button>
+                )}
             </div>
         </Card>
     );
 }
+

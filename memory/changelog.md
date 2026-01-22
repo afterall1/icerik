@@ -6,6 +6,37 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.1.0] - 2026-01-22
+
+### 🎨 ScriptGenerator UI & React Query Migration
+
+Dashboard'a AI script generation UI ve React Query migration eklendi.
+
+### Added
+- **ScriptGeneratorModal.tsx** (~380 lines)
+  - Format, platform, ton, dil seçimi
+  - Süre slider (15-180 saniye)
+  - Hook ve CTA toggle'ları
+  - Script preview with sections
+  - Copy to clipboard
+
+- **ScriptPreview.tsx** - Collapsible sections, per-section copy
+- **TrendCard Script Button** - "Script Oluştur" hover button
+- **React Query Hooks** - useScriptGenerator, useVideoFormats, useAIStatus
+- **Mobile Responsive Utilities** - touch-target, safe-area, modal-mobile-fullscreen
+
+### Changed
+- TrendExplorer refactored to use React Query hooks
+- Removed ~50 lines of useState/useEffect boilerplate
+- Added mobile touch targets (44px minimum)
+
+### Technical
+- 6 new files added
+- 4 files modified
+- ~800 lines of new code
+
+---
+
 ## [1.0.0] - 2026-01-22
 
 ### 🎉 MVP Release

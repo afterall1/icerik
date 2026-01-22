@@ -1,19 +1,25 @@
-import { useState, useEffect } from 'react';
+/**
+ * TrendExplorer Page
+ * 
+ * Main dashboard page for exploring viral trends from Reddit.
+ * Uses React Query for data fetching with automatic caching and refetching.
+ * 
+ * @module pages/TrendExplorer
+ */
+
+import { useState, useCallback } from 'react';
 import { useFilterStore } from '../stores/filterStore';
-import { api, type Category, type Subreddit, type TrendData } from '../lib/api';
+import { useCategories, useSubreddits, useTrends } from '../lib/hooks';
 import { CategoryGrid, SubredditList, TrendResults, FilterPanel } from '../components/organisms';
 import { Button } from '../components/atoms';
-import { ChevronLeft, RefreshCw, Activity } from 'lucide-react';
+import { ChevronLeft, RefreshCw, Activity, AlertCircle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 type ViewState = 'categories' | 'subreddits' | 'trends';
 
 export function TrendExplorer() {
     const [view, setView] = useState<ViewState>('categories');
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [subreddits, setSubreddits] = useState<Subreddit[]>([]);
-    const [trends, setTrends] = useState<TrendData[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
 
     const {
         selectedCategory,
@@ -26,94 +32,91 @@ export function TrendExplorer() {
         setTimeRange,
     } = useFilterStore();
 
-    useEffect(() => {
-        loadCategories();
-    }, []);
+    // React Query hooks
+    const {
+        data: categories = [],
+        isLoading: categoriesLoading,
+        error: categoriesError,
+        refetch: refetchCategories,
+    } = useCategories();
 
-    useEffect(() => {
-        if (selectedCategory) {
-            loadSubreddits(selectedCategory);
+    const {
+        data: subreddits = [],
+        isLoading: subredditsLoading,
+        error: subredditsError,
+        refetch: refetchSubreddits,
+    } = useSubreddits(selectedCategory || undefined, {
+        enabled: !!selectedCategory,
+    });
+
+    const {
+        data: trends = [],
+        isLoading: trendsLoading,
+        error: trendsError,
+        refetch: refetchTrends,
+    } = useTrends(
+        {
+            subreddit: selectedSubreddit || undefined,
+            sortType,
+            timeRange,
+            limit: 20,
+        },
+        {
+            enabled: !!selectedSubreddit && view === 'trends',
         }
-    }, [selectedCategory]);
+    );
 
-    useEffect(() => {
-        if (selectedSubreddit) {
-            loadTrends();
-        }
-    }, [selectedSubreddit, sortType, timeRange]);
+    // Determine current loading and error state based on view
+    const isLoading =
+        (view === 'categories' && categoriesLoading) ||
+        (view === 'subreddits' && subredditsLoading) ||
+        (view === 'trends' && trendsLoading);
 
-    async function loadCategories() {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const data = await api.getCategories();
-            setCategories(data);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Kategoriler yüklenemedi');
-        } finally {
-            setIsLoading(false);
-        }
-    }
+    const currentError =
+        (view === 'categories' && categoriesError) ||
+        (view === 'subreddits' && subredditsError) ||
+        (view === 'trends' && trendsError);
 
-    async function loadSubreddits(category: string) {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const data = await api.getSubreddits(category);
-            setSubreddits(data.slice(0, 10));
-            setView('subreddits');
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Subredditler yüklenemedi');
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
-    async function loadTrends() {
-        if (!selectedSubreddit) return;
-
-        setIsLoading(true);
-        setError(null);
-        try {
-            const data = await api.getTrends({
-                subreddit: selectedSubreddit,
-                sortType,
-                timeRange,
-                limit: 20,
-            });
-            setTrends(data);
-            setView('trends');
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Trendler yüklenemedi');
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
-    function handleCategorySelect(id: string) {
+    const handleCategorySelect = useCallback((id: string) => {
         setSelectedCategory(id);
-    }
+        setView('subreddits');
+    }, [setSelectedCategory]);
 
-    function handleSubredditSelect(name: string) {
+    const handleSubredditSelect = useCallback((name: string) => {
         setSelectedSubreddit(name);
-    }
+        setView('trends');
+    }, [setSelectedSubreddit]);
 
-    function handleBack() {
+    const handleBack = useCallback(() => {
         if (view === 'trends') {
             setView('subreddits');
-            setTrends([]);
         } else if (view === 'subreddits') {
             setView('categories');
             setSelectedCategory(null);
-            setSubreddits([]);
         }
-    }
+    }, [view, setSelectedCategory]);
 
-    function getCategoryLabel(id: string | null): string {
+    const handleRetry = useCallback(() => {
+        if (view === 'categories') {
+            refetchCategories();
+        } else if (view === 'subreddits') {
+            refetchSubreddits();
+        } else if (view === 'trends') {
+            refetchTrends();
+        }
+    }, [view, refetchCategories, refetchSubreddits, refetchTrends]);
+
+    const handleRefreshTrends = useCallback(() => {
+        // Invalidate and refetch trends with fresh data
+        queryClient.invalidateQueries({ queryKey: ['trends', 'list'] });
+        refetchTrends();
+    }, [queryClient, refetchTrends]);
+
+    const getCategoryLabel = useCallback((id: string | null): string => {
         if (!id) return '';
         const cat = categories.find((c) => c.id === id);
         return cat?.label ?? id;
-    }
+    }, [categories]);
 
     return (
         <div className="min-h-screen bg-slate-900">
@@ -153,26 +156,30 @@ export function TrendExplorer() {
             </header>
 
             <main className="max-w-6xl mx-auto px-4 py-8">
-                {error && (
-                    <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">
-                        <p>{error}</p>
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            className="mt-2"
-                            onClick={() => {
-                                setError(null);
-                                if (view === 'categories') loadCategories();
-                                else if (view === 'subreddits' && selectedCategory) loadSubreddits(selectedCategory);
-                                else if (view === 'trends') loadTrends();
-                            }}
-                        >
-                            <RefreshCw className="w-4 h-4 mr-1" />
-                            Tekrar Dene
-                        </Button>
+                {/* Error Display */}
+                {currentError && (
+                    <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg">
+                        <div className="flex items-start gap-3 text-red-300">
+                            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="font-medium">Bir hata oluştu</p>
+                                <p className="text-sm text-red-400 mt-1">
+                                    {currentError instanceof Error ? currentError.message : 'Beklenmeyen bir hata oluştu'}
+                                </p>
+                            </div>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={handleRetry}
+                            >
+                                <RefreshCw className="w-4 h-4 mr-1" />
+                                Tekrar Dene
+                            </Button>
+                        </div>
                     </div>
                 )}
 
+                {/* Categories View */}
                 {view === 'categories' && (
                     <section>
                         <h2 className="text-2xl font-bold text-slate-100 mb-6">
@@ -182,26 +189,28 @@ export function TrendExplorer() {
                             categories={categories}
                             selectedCategory={selectedCategory}
                             onCategorySelect={handleCategorySelect}
-                            isLoading={isLoading}
+                            isLoading={categoriesLoading}
                         />
                     </section>
                 )}
 
+                {/* Subreddits View */}
                 {view === 'subreddits' && (
                     <section>
                         <h2 className="text-2xl font-bold text-slate-100 mb-6">
                             📊 Subreddit Seç
                         </h2>
                         <SubredditList
-                            subreddits={subreddits}
+                            subreddits={subreddits.slice(0, 10)}
                             selectedSubreddit={selectedSubreddit}
                             onSubredditSelect={handleSubredditSelect}
-                            isLoading={isLoading}
+                            isLoading={subredditsLoading}
                             categoryLabel={getCategoryLabel(selectedCategory)}
                         />
                     </section>
                 )}
 
+                {/* Trends View */}
                 {view === 'trends' && (
                     <section>
                         <FilterPanel
@@ -218,15 +227,15 @@ export function TrendExplorer() {
                             <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={loadTrends}
-                                disabled={isLoading}
+                                onClick={handleRefreshTrends}
+                                disabled={trendsLoading}
                             >
-                                <RefreshCw className={`w-4 h-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+                                <RefreshCw className={`w-4 h-4 mr-1 ${trendsLoading ? 'animate-spin' : ''}`} />
                                 Yenile
                             </Button>
                         </div>
 
-                        <TrendResults trends={trends} isLoading={isLoading} />
+                        <TrendResults trends={trends} isLoading={trendsLoading} />
                     </section>
                 )}
             </main>

@@ -113,4 +113,140 @@ class ApiClient {
     }
 }
 
+/**
+ * Video format types for script generation
+ */
+export type VideoFormat =
+    | 'Explainer'
+    | 'News Commentary'
+    | 'Review'
+    | 'Hot Take'
+    | 'Analysis'
+    | 'Recreation'
+    | 'Commentary'
+    | 'Reaction'
+    | 'Tips'
+    | 'How-To'
+    | 'Story-time'
+    | 'Highlights'
+    | 'Deep Dive';
+
+/**
+ * Script generation options
+ */
+export interface ScriptOptions {
+    format: VideoFormat;
+    durationSeconds: number;
+    platform: 'tiktok' | 'reels' | 'shorts' | 'all';
+    tone: 'casual' | 'professional' | 'humorous' | 'dramatic';
+    language: 'en' | 'tr';
+    includeCta: boolean;
+    includeHook: boolean;
+}
+
+/**
+ * Generated script response
+ */
+export interface GeneratedScript {
+    script: string;
+    title: string;
+    hashtags: string[];
+    estimatedDurationSeconds: number;
+    sections: {
+        hook?: string;
+        body: string;
+        cta?: string;
+    };
+    metadata: {
+        format: VideoFormat;
+        platform: string;
+        generatedAt: string;
+        trendId: string;
+        category: string;
+    };
+}
+
+/**
+ * AI service status
+ */
+export interface AIStatus {
+    configured: boolean;
+    rateLimit: {
+        requestsInLastMinute: number;
+        maxRequestsPerMinute: number;
+        isLimited: boolean;
+        backoffRemainingMs: number;
+    };
+}
+
+/**
+ * Script generation request payload
+ */
+export interface GenerateScriptRequest {
+    trend: TrendData;
+    options?: Partial<ScriptOptions>;
+}
+
 export const api = new ApiClient();
+
+/**
+ * Extended API client for AI operations
+ */
+export const aiApi = {
+    /**
+     * Generate a video script from a trend
+     */
+    async generateScript(request: GenerateScriptRequest): Promise<GeneratedScript> {
+        const response = await fetch(`${API_BASE}/generate-script`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Script generation failed' }));
+            throw new Error(error.error || `API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<GeneratedScript> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Script generation failed');
+        }
+
+        return data.data as GeneratedScript;
+    },
+
+    /**
+     * Get AI service status
+     */
+    async getStatus(): Promise<AIStatus> {
+        const response = await fetch(`${API_BASE}/ai/status`);
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<AIStatus> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to get AI status');
+        }
+
+        return data.data as AIStatus;
+    },
+
+    /**
+     * Get available video formats for a category
+     */
+    async getFormatsForCategory(category: string): Promise<VideoFormat[]> {
+        const response = await fetch(`${API_BASE}/ai/formats/${category}`);
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<{ formats: VideoFormat[] }> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to get formats');
+        }
+
+        return data.data?.formats || [];
+    },
+};
