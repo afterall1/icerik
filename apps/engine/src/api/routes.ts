@@ -3,37 +3,70 @@ import { cors } from 'hono/cors';
 import { logger as honoLogger } from 'hono/logger';
 import { getRedditFetcher, RedditFetchError } from '../ingestion/index.js';
 import { getNesCalculator, getTrendAggregator } from '../processing/index.js';
+import { getCacheService, getDatabaseStats, CACHE_TTL } from '../cache/index.js';
 import { SUBREDDIT_CONFIG, CATEGORY_LABELS, CATEGORY_VIDEO_FORMATS } from '@icerik/shared';
 import type { TrendQuery, ContentCategory, ApiResponse, TrendSummary, TrendData, SubredditConfig } from '@icerik/shared';
 import { createChildLogger } from '../utils/logger.js';
 
 const logger = createChildLogger('api');
 
-export function createApiRouter() {
-    const api = new Hono();
+/**
+ * Response metadata including cache status
+ */
+interface ResponseMeta {
+    cacheStatus: 'HIT' | 'MISS' | 'BYPASS';
+    cachedAt?: string;
+    responseTimeMs?: number;
+}
 
+/**
+ * Creates the main API router with all endpoints
+ * @returns Configured Hono router
+ */
+export function createApiRouter(): Hono {
+    const api = new Hono();
+    const cache = getCacheService();
+
+    // Global middleware
     api.use('*', cors());
     api.use('*', honoLogger());
 
+    /**
+     * GET /api/health
+     * Health check endpoint with cache and rate limit status
+     */
     api.get('/health', (c) => {
         const fetcher = getRedditFetcher();
-        const status = fetcher.getRateLimitStatus();
+        const rateLimitStatus = fetcher.getRateLimitStatus();
+        const cacheStats = cache.getStats();
+        const dbStats = getDatabaseStats();
 
         return c.json({
-            status: status.isHealthy ? 'ok' : 'degraded',
+            status: rateLimitStatus.isHealthy ? 'ok' : 'degraded',
             timestamp: new Date().toISOString(),
             version: '1.0.0',
-            rateLimit: status,
+            rateLimit: rateLimitStatus,
+            cache: {
+                ...cacheStats,
+                dbSizeBytes: dbStats.dbSizeBytes,
+            },
         });
     });
 
     /**
      * GET /api/trends
      * Fetch current trends with optional filtering
+     * Implements cache-first strategy with 5-minute TTL
      */
     api.get('/trends', async (c) => {
+        const startTime = Date.now();
+        let cacheStatus: ResponseMeta['cacheStatus'] = 'MISS';
+        let cachedAt: string | undefined;
+
         try {
             const subredditParam = c.req.query('subreddit');
+            const bypassCache = c.req.query('bypass') === 'true';
+
             const query: TrendQuery = {
                 category: c.req.query('category') as ContentCategory | undefined,
                 timeRange: (c.req.query('timeRange') || 'day') as TrendQuery['timeRange'],
@@ -44,12 +77,46 @@ export function createApiRouter() {
 
             const sortType = (c.req.query('sortType') || 'hot') as 'hot' | 'rising' | 'top' | 'new';
 
-            logger.info({ query, subreddit: subredditParam, sortType }, 'Fetching trends');
+            // Check cache first (unless bypass requested)
+            if (!bypassCache) {
+                const cached = cache.getTrends(query, subredditParam);
+                if (cached) {
+                    cacheStatus = 'HIT';
+                    cachedAt = cached.cachedAt;
+
+                    const responseTimeMs = Date.now() - startTime;
+                    cache.logRequest('/api/trends', true, responseTimeMs);
+
+                    logger.info({
+                        query,
+                        subreddit: subredditParam,
+                        cacheStatus,
+                        responseTimeMs,
+                        hitCount: cached.hitCount
+                    }, 'Trends served from cache');
+
+                    c.header('X-Cache', 'HIT');
+                    c.header('X-Cache-Age', cachedAt || '');
+                    c.header('X-Response-Time', `${responseTimeMs}ms`);
+
+                    return c.json({
+                        success: true,
+                        data: cached.data,
+                        timestamp: new Date().toISOString(),
+                        meta: { cacheStatus, cachedAt, responseTimeMs },
+                    });
+                }
+            } else {
+                cacheStatus = 'BYPASS';
+            }
+
+            logger.info({ query, subreddit: subredditParam, sortType, cacheStatus }, 'Fetching trends from Reddit');
 
             const fetcher = getRedditFetcher();
             const nesCalculator = getNesCalculator();
             const aggregator = getTrendAggregator();
 
+            // Determine which subreddits to fetch
             let subredditsToFetch: string[];
 
             if (subredditParam) {
@@ -64,6 +131,7 @@ export function createApiRouter() {
             }
 
             if (subredditsToFetch.length === 0) {
+                c.header('X-Cache', 'BYPASS');
                 return c.json({
                     success: true,
                     data: [],
@@ -72,38 +140,73 @@ export function createApiRouter() {
                 });
             }
 
+            // Fetch from Reddit
             const postsMap = await fetcher.fetchMultipleSubreddits(
                 subredditsToFetch,
                 { sort: sortType, timeRange: query.timeRange, limit: 50 }
             );
 
+            // Process posts through NES calculator
             const trendsBySubreddit = new Map<string, TrendData[]>();
             for (const [subreddit, posts] of postsMap) {
                 const trends = nesCalculator.processPostBatch(posts);
                 trendsBySubreddit.set(subreddit, trends);
+
+                // Update subreddit stats for future baseline calculations
+                if (posts.length > 0) {
+                    const avgScore = posts.reduce((sum, p) => sum + p.score, 0) / posts.length;
+                    const avgComments = posts.reduce((sum, p) => sum + p.num_comments, 0) / posts.length;
+                    cache.updateSubredditStats(subreddit, avgScore, avgComments, posts.length);
+                }
             }
 
+            // Aggregate and deduplicate
             let allTrends = aggregator.aggregateTrends(trendsBySubreddit);
             allTrends = aggregator.deduplicateTrends(allTrends);
 
+            // Apply filters
             const filtered = aggregator.filterTrends(allTrends, query);
 
-            const response: ApiResponse<TrendData[]> = {
+            // Store in cache
+            cache.setTrends(query, filtered, subredditParam, CACHE_TTL.TRENDS);
+
+            const responseTimeMs = Date.now() - startTime;
+            cache.logRequest('/api/trends', false, responseTimeMs);
+
+            logger.info({
+                query,
+                subreddit: subredditParam,
+                resultCount: filtered.length,
+                responseTimeMs,
+                cacheStatus
+            }, 'Trends fetched and cached');
+
+            c.header('X-Cache', cacheStatus);
+            c.header('X-Response-Time', `${responseTimeMs}ms`);
+
+            const response: ApiResponse<TrendData[]> & { meta?: ResponseMeta } = {
                 success: true,
                 data: filtered,
                 timestamp: new Date().toISOString(),
+                meta: { cacheStatus, responseTimeMs },
             };
 
             return c.json(response);
 
         } catch (error) {
-            logger.error({ error }, 'Failed to fetch trends');
+            const responseTimeMs = Date.now() - startTime;
+            cache.logRequest('/api/trends', false, responseTimeMs);
+
+            logger.error({ error, responseTimeMs }, 'Failed to fetch trends');
 
             const errorMessage = error instanceof RedditFetchError
                 ? `Reddit error: ${error.message}`
                 : error instanceof Error
                     ? error.message
                     : 'Unknown error';
+
+            c.header('X-Cache', 'ERROR');
+            c.header('X-Response-Time', `${responseTimeMs}ms`);
 
             const response: ApiResponse<null> = {
                 success: false,
@@ -148,10 +251,37 @@ export function createApiRouter() {
 
     /**
      * GET /api/trends/summary
-     * Get a summary of current trends
+     * Get a summary of current trends with caching
      */
     api.get('/trends/summary', async (c) => {
+        const startTime = Date.now();
+        let cacheStatus: ResponseMeta['cacheStatus'] = 'MISS';
+
         try {
+            const bypassCache = c.req.query('bypass') === 'true';
+
+            // Check cache first
+            if (!bypassCache) {
+                const cached = cache.getSummary();
+                if (cached) {
+                    cacheStatus = 'HIT';
+                    const responseTimeMs = Date.now() - startTime;
+                    cache.logRequest('/api/trends/summary', true, responseTimeMs);
+
+                    c.header('X-Cache', 'HIT');
+                    c.header('X-Response-Time', `${responseTimeMs}ms`);
+
+                    return c.json({
+                        success: true,
+                        data: cached.data,
+                        timestamp: new Date().toISOString(),
+                        meta: { cacheStatus, cachedAt: cached.cachedAt, responseTimeMs },
+                    });
+                }
+            } else {
+                cacheStatus = 'BYPASS';
+            }
+
             const fetcher = getRedditFetcher();
             const nesCalculator = getNesCalculator();
             const aggregator = getTrendAggregator();
@@ -175,6 +305,15 @@ export function createApiRouter() {
             const uniqueTrends = aggregator.deduplicateTrends(allTrends);
             const summary = aggregator.generateSummary(uniqueTrends);
 
+            // Store in cache
+            cache.setSummary(summary, CACHE_TTL.SUMMARY);
+
+            const responseTimeMs = Date.now() - startTime;
+            cache.logRequest('/api/trends/summary', false, responseTimeMs);
+
+            c.header('X-Cache', cacheStatus);
+            c.header('X-Response-Time', `${responseTimeMs}ms`);
+
             const response: ApiResponse<TrendSummary> = {
                 success: true,
                 data: summary,
@@ -184,7 +323,13 @@ export function createApiRouter() {
             return c.json(response);
 
         } catch (error) {
+            const responseTimeMs = Date.now() - startTime;
+            cache.logRequest('/api/trends/summary', false, responseTimeMs);
+
             logger.error({ error }, 'Failed to generate summary');
+
+            c.header('X-Cache', 'ERROR');
+            c.header('X-Response-Time', `${responseTimeMs}ms`);
 
             return c.json({
                 success: false,
@@ -215,21 +360,233 @@ export function createApiRouter() {
 
     /**
      * GET /api/status
-     * Get engine status including rate limits
+     * Get engine status including rate limits and cache stats
      */
     api.get('/status', (c) => {
         const fetcher = getRedditFetcher();
         const rateLimitStatus = fetcher.getRateLimitStatus();
+        const cacheStats = cache.getStats();
+        const dbStats = getDatabaseStats();
 
         return c.json({
             success: true,
             data: {
                 rateLimit: rateLimitStatus,
-                subredditCount: SUBREDDIT_CONFIG.length,
-                tier1Count: SUBREDDIT_CONFIG.filter((s: SubredditConfig) => s.tier === 1).length,
-                tier2Count: SUBREDDIT_CONFIG.filter((s: SubredditConfig) => s.tier === 2).length,
-                tier3Count: SUBREDDIT_CONFIG.filter((s: SubredditConfig) => s.tier === 3).length,
+                cache: {
+                    totalEntries: cacheStats.totalEntries,
+                    hitRate: `${cacheStats.cacheHitRate.toFixed(1)}%`,
+                    totalHits: cacheStats.totalHits,
+                    expiredCount: cacheStats.expiredCount,
+                    dbSizeKB: Math.round(dbStats.dbSizeBytes / 1024),
+                },
+                subreddits: {
+                    total: SUBREDDIT_CONFIG.length,
+                    tier1: SUBREDDIT_CONFIG.filter((s: SubredditConfig) => s.tier === 1).length,
+                    tier2: SUBREDDIT_CONFIG.filter((s: SubredditConfig) => s.tier === 2).length,
+                    tier3: SUBREDDIT_CONFIG.filter((s: SubredditConfig) => s.tier === 3).length,
+                },
                 method: '.json URL append (no API key)',
+            },
+            timestamp: new Date().toISOString(),
+        });
+    });
+
+    /**
+     * POST /api/cache/invalidate
+     * Manually invalidate cache entries
+     */
+    api.post('/cache/invalidate', async (c) => {
+        try {
+            const body = await c.req.json() as { prefix?: string; category?: ContentCategory; all?: boolean };
+
+            if (body.all === true) {
+                cache.invalidateByPrefix('trends');
+                cache.invalidateByPrefix('summary');
+                logger.info('All cache entries invalidated');
+                return c.json({ success: true, message: 'All cache invalidated' });
+            }
+
+            if (body.prefix) {
+                cache.invalidateByPrefix(body.prefix);
+                logger.info({ prefix: body.prefix }, 'Cache invalidated by prefix');
+                return c.json({ success: true, message: `Cache invalidated for prefix: ${body.prefix}` });
+            }
+
+            if (body.category) {
+                cache.invalidateByCategory(body.category);
+                logger.info({ category: body.category }, 'Cache invalidated by category');
+                return c.json({ success: true, message: `Cache invalidated for category: ${body.category}` });
+            }
+
+            return c.json({ success: false, error: 'Specify prefix, category, or all: true' }, 400);
+
+        } catch (error) {
+            logger.error({ error }, 'Cache invalidation failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            }, 500);
+        }
+    });
+
+    /**
+     * POST /api/cache/cleanup
+     * Clean up expired cache entries
+     */
+    api.post('/cache/cleanup', (c) => {
+        const deleted = cache.cleanupExpired();
+        logger.info({ deleted }, 'Cache cleanup completed');
+        return c.json({ success: true, deleted });
+    });
+
+    // ============================================
+    // AI CONTENT GENERATION ENDPOINTS
+    // ============================================
+
+    /**
+     * POST /api/generate-script
+     * Generate a video script from trend data using Gemini AI
+     */
+    api.post('/generate-script', async (c) => {
+        try {
+            // Dynamic import to avoid loading AI module if not needed
+            const { getScriptGenerator, getGeminiClient, GeminiError } = await import('../ai/index.js');
+
+            const gemini = getGeminiClient();
+
+            // Check if AI is configured
+            if (!gemini.isConfigured()) {
+                return c.json({
+                    success: false,
+                    error: 'AI features are not configured. Please set GEMINI_API_KEY in environment.',
+                    timestamp: new Date().toISOString(),
+                }, 503);
+            }
+
+            const body = await c.req.json() as {
+                trend: TrendData;
+                options?: {
+                    format?: string;
+                    durationSeconds?: number;
+                    platform?: 'tiktok' | 'reels' | 'shorts' | 'all';
+                    tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+                    language?: 'en' | 'tr';
+                    includeCta?: boolean;
+                    includeHook?: boolean;
+                };
+            };
+
+            if (!body.trend || !body.trend.id) {
+                return c.json({
+                    success: false,
+                    error: 'Invalid request: trend data is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const generator = getScriptGenerator();
+
+            // Validate options
+            if (body.options) {
+                const validation = generator.validateOptions(body.options);
+                if (!validation.valid) {
+                    return c.json({
+                        success: false,
+                        error: `Invalid options: ${validation.errors.join(', ')}`,
+                        timestamp: new Date().toISOString(),
+                    }, 400);
+                }
+            }
+
+            logger.info({
+                trendId: body.trend.id,
+                category: body.trend.category,
+                format: body.options?.format,
+            }, 'Generating script...');
+
+            const script = await generator.generateScript(body.trend, body.options);
+
+            return c.json({
+                success: true,
+                data: script,
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            // Dynamic import for error type check
+            const { GeminiError } = await import('../ai/index.js');
+
+            logger.error({ error }, 'Script generation failed');
+
+            if (error instanceof GeminiError) {
+                const statusCode = error.statusCode === 429 ? 429 : 500;
+                return c.json({
+                    success: false,
+                    error: error.message,
+                    retryable: error.retryable,
+                    timestamp: new Date().toISOString(),
+                }, statusCode);
+            }
+
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * GET /api/ai/status
+     * Get AI service status and rate limits
+     */
+    api.get('/ai/status', async (c) => {
+        try {
+            const { getGeminiClient } = await import('../ai/index.js');
+            const gemini = getGeminiClient();
+
+            return c.json({
+                success: true,
+                data: {
+                    configured: gemini.isConfigured(),
+                    rateLimit: gemini.getRateLimitStatus(),
+                },
+                timestamp: new Date().toISOString(),
+            });
+        } catch (error) {
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * GET /api/ai/formats/:category
+     * Get available video formats for a category
+     */
+    api.get('/ai/formats/:category', async (c) => {
+        const category = c.req.param('category') as ContentCategory;
+
+        const validCategories = Object.keys(CATEGORY_LABELS);
+        if (!validCategories.includes(category)) {
+            return c.json({
+                success: false,
+                error: `Invalid category. Valid categories: ${validCategories.join(', ')}`,
+                timestamp: new Date().toISOString(),
+            }, 400);
+        }
+
+        const { getScriptGenerator } = await import('../ai/index.js');
+        const generator = getScriptGenerator();
+        const formats = generator.getFormatsForCategory(category);
+
+        return c.json({
+            success: true,
+            data: {
+                category,
+                formats,
             },
             timestamp: new Date().toISOString(),
         });
@@ -237,3 +594,4 @@ export function createApiRouter() {
 
     return api;
 }
+
