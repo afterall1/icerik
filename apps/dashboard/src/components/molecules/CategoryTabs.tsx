@@ -134,8 +134,12 @@ export function CategoryTabs({
             {/* Tabs Container */}
             <div
                 ref={scrollContainerRef}
-                className="flex gap-2 overflow-x-auto scrollbar-hide py-2 px-1"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                className="flex gap-2 overflow-x-auto scrollbar-hide py-2 px-1 scroll-smooth snap-x snap-mandatory"
+                style={{
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                    WebkitOverflowScrolling: 'touch',
+                }}
             >
                 {/* All Categories Tab */}
                 <button

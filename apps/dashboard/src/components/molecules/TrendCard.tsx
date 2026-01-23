@@ -121,11 +121,12 @@ export function TrendCard({
                             e.stopPropagation();
                             onGenerateScript();
                         }}
-                        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-300 bg-indigo-900/40 hover:bg-indigo-800/60 border border-indigo-700/50 hover:border-indigo-600 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-300 bg-indigo-900/40 hover:bg-indigo-800/60 border border-indigo-700/50 hover:border-indigo-600 rounded-lg transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 active:scale-95"
                         title="AI ile script oluştur"
                     >
                         <Sparkles className="w-3.5 h-3.5" />
-                        Script Oluştur
+                        <span className="hidden xs:inline">Script Oluştur</span>
+                        <span className="xs:hidden">AI</span>
                     </button>
                 )}
             </div>

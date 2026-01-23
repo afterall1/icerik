@@ -10,10 +10,11 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useFilterStore } from '../stores/filterStore';
 import { useCategories, useSubreddits, useTrends } from '../lib/hooks';
+import { useUrlState } from '../lib/useUrlState';
 import { FilterSidebar } from '../components/organisms/FilterSidebar';
 import { CategoryTabs } from '../components/molecules/CategoryTabs';
 import { SearchBar } from '../components/molecules/SearchBar';
-import { TrendResults } from '../components/organisms';
+import { TrendGrid } from '../components/organisms';
 import { Activity, RefreshCw, Sparkles, TrendingUp, Zap } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../components/atoms';
@@ -35,6 +36,9 @@ export function UnifiedDashboard() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
     const debouncedSearch = useDebounce(searchQuery, 300);
+
+    // Sync filters with URL
+    useUrlState({ searchQuery, onSearchQueryChange: setSearchQuery });
 
     const {
         selectedCategory,
@@ -233,8 +237,8 @@ export function UnifiedDashboard() {
                             </div>
                         )}
 
-                        {/* Trend Results */}
-                        <TrendResults
+                        {/* Trend Grid */}
+                        <TrendGrid
                             trends={filteredTrends}
                             isLoading={trendsLoading}
                         />

@@ -6,6 +6,43 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.5.0] - 2026-01-23
+
+### 🎯 Production Polish (Phase 9)
+
+Dashboard production-ready hale getirildi: responsive grid, URL state sync, mobile optimizations, unit tests.
+
+### Added
+- **TrendGrid.tsx** (~270 lines)
+  - Responsive CSS Grid (1/2/3 columns)
+  - Grid/List view toggle
+  - Scroll-based lazy loading virtualization
+  - Staggered fade-in animations
+
+- **useUrlState.ts** (~220 lines)
+  - Bidirectional filter ↔ URL sync
+  - Browser back/forward navigation support
+  - Deep linking: `/?category=technology&sort=hot`
+
+- **Unit Tests** (14 tests)
+  - `vitest.config.ts` - Test framework configuration
+  - `setupTests.ts` - Browser API mocks
+  - `hooks.test.tsx` - useCategories, useTrends, useScriptGenerator tests
+
+### Changed
+- **UnifiedDashboard.tsx**: TrendResults → TrendGrid, useUrlState integration
+- **CategoryTabs.tsx**: iOS touch scroll (-webkit-overflow-scrolling), snap scrolling
+- **TrendCard.tsx**: Always-visible button on mobile, condensed text
+
+### Technical
+- 5 new files added
+- 6 files modified
+- Vitest + React Testing Library
+- 14 tests passed (802ms)
+- Build size: 89.18 kB gzipped
+
+---
+
 ## [1.4.0] - 2026-01-23
 
 ### ⚡ Category Loading Performance Optimization (Phase 8)
