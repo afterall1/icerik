@@ -6,6 +6,43 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.9.0] - 2026-01-24
+
+### 🧠 Native Gemini Education System (Phase 13)
+
+NotebookLM API olmadığı için Native Gemini yaklaşımı ile Agent Education System implemente edildi.
+
+### Added
+- **Knowledge Base System** (`apps/engine/src/ai/knowledge/`)
+  - `platforms/tiktok-algorithm.md` - TikTok FYP, hooks, loops (~300 lines)
+  - `platforms/instagram-reels.md` - Shares, saves, aesthetics (~300 lines)
+  - `platforms/youtube-shorts.md` - Retention, subscribe, SEO (~330 lines)
+  - `content-patterns/viral-hooks.md` - 10 hook categories (~280 lines)
+  - `content-patterns/cta-templates.md` - Platform CTAs (~270 lines)
+  - `content-patterns/script-structures.md` - 8 script templates (~290 lines)
+
+- **Knowledge Loader Module**
+  - `loader.ts` - File reading, caching, section extraction (~580 lines)
+  - `index.ts` - Module exports
+  - `compilePlatformKnowledge()` - Platform-specific knowledge compilation
+
+### Changed
+- **BasePlatformAgent.ts** - Knowledge injection into `buildContentPrompt()`
+- Every AI request now includes deep platform knowledge automatically
+
+### Council Decision
+- NotebookLM Enterprise requires corporate agreement (no public API)
+- Native Gemini approach selected: Markdown files → Context injection
+
+### Technical
+- 8 new files added
+- 1 file modified
+- ~1800 lines of knowledge content
+- ~600 lines of loader code
+- TypeScript build: Passed
+
+---
+
 ## [1.8.0] - 2026-01-24
 
 ### 🏗️ Multi-Modal Architecture & AI Quality (Phase 12)
