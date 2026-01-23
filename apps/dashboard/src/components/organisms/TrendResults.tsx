@@ -9,7 +9,7 @@
 
 import { useState, useCallback } from 'react';
 import { TrendCard } from '../molecules';
-import { ScriptGeneratorModal } from './ScriptGeneratorModal';
+import { MultiPlatformScriptModal } from './MultiPlatformScriptModal';
 import type { TrendData } from '../../lib/api';
 
 interface TrendResultsProps {
@@ -82,9 +82,9 @@ export function TrendResults({ trends, isLoading = false }: TrendResultsProps) {
                 ))}
             </div>
 
-            {/* Script Generator Modal */}
+            {/* Multi-Platform Script Generator Modal */}
             {selectedTrend && (
-                <ScriptGeneratorModal
+                <MultiPlatformScriptModal
                     trend={selectedTrend}
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}

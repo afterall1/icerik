@@ -14,7 +14,7 @@ export {
     resetGeminiClient,
 } from './gemini.js';
 
-// Script Generator
+// Script Generator (single platform - legacy)
 export {
     ScriptGenerator,
     getScriptGenerator,
@@ -23,3 +23,24 @@ export {
     type GeneratedScript,
     type VideoFormat,
 } from './scriptGenerator.js';
+
+// Platform Agents
+export {
+    BasePlatformAgent,
+    TikTokAgent,
+    ReelsAgent,
+    ShortsAgent,
+    getTikTokAgent,
+    getReelsAgent,
+    getShortsAgent,
+    getAgentForPlatform,
+    getAllAgents,
+    type AgentOptions,
+} from './agents/index.js';
+
+// Multi-Platform Orchestrator
+export {
+    MultiPlatformOrchestrator,
+    getOrchestrator,
+    resetOrchestrator,
+} from './orchestrator/index.js';

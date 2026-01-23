@@ -9,7 +9,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { TrendCard } from '../molecules';
-import { ScriptGeneratorModal } from './ScriptGeneratorModal';
+import { MultiPlatformScriptModal } from './MultiPlatformScriptModal';
 import { LayoutGrid, List, Loader2 } from 'lucide-react';
 import type { TrendData } from '../../lib/api';
 
@@ -162,8 +162,8 @@ export function TrendGrid({
                     <button
                         onClick={() => handleViewModeChange('grid')}
                         className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid'
-                                ? 'bg-indigo-500/20 text-indigo-400'
-                                : 'text-slate-400 hover:text-slate-300'
+                            ? 'bg-indigo-500/20 text-indigo-400'
+                            : 'text-slate-400 hover:text-slate-300'
                             }`}
                         title="Grid görünümü"
                         aria-label="Grid görünümü"
@@ -173,8 +173,8 @@ export function TrendGrid({
                     <button
                         onClick={() => handleViewModeChange('list')}
                         className={`p-1.5 rounded-md transition-colors ${viewMode === 'list'
-                                ? 'bg-indigo-500/20 text-indigo-400'
-                                : 'text-slate-400 hover:text-slate-300'
+                            ? 'bg-indigo-500/20 text-indigo-400'
+                            : 'text-slate-400 hover:text-slate-300'
                             }`}
                         title="Liste görünümü"
                         aria-label="Liste görünümü"
@@ -226,9 +226,9 @@ export function TrendGrid({
                 </div>
             )}
 
-            {/* Script Generator Modal */}
+            {/* Multi-Platform Script Generator Modal */}
             {selectedTrend && (
-                <ScriptGeneratorModal
+                <MultiPlatformScriptModal
                     trend={selectedTrend}
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}

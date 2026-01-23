@@ -460,7 +460,7 @@ export function createApiRouter(): Hono {
     api.post('/generate-script', async (c) => {
         try {
             // Dynamic import to avoid loading AI module if not needed
-            const { getScriptGenerator, getGeminiClient, GeminiError } = await import('../ai/index.js');
+            const { getScriptGenerator, getGeminiClient } = await import('../ai/index.js');
 
             const gemini = getGeminiClient();
 
@@ -597,6 +597,245 @@ export function createApiRouter(): Hono {
             data: {
                 category,
                 formats,
+            },
+            timestamp: new Date().toISOString(),
+        });
+    });
+
+    // ============================================
+    // MULTI-PLATFORM AI GENERATION ENDPOINTS
+    // ============================================
+
+    /**
+     * POST /api/generate-scripts
+     * Generate video scripts for multiple platforms simultaneously
+     */
+    api.post('/generate-scripts', async (c) => {
+        try {
+            const { getGeminiClient } = await import('../ai/index.js');
+            const { getOrchestrator } = await import('../ai/orchestrator/index.js');
+            const { ALL_PLATFORMS } = await import('@icerik/shared');
+
+            const gemini = getGeminiClient();
+
+            if (!gemini.isConfigured()) {
+                return c.json({
+                    success: false,
+                    error: 'AI features are not configured. Please set GEMINI_API_KEY in environment.',
+                    timestamp: new Date().toISOString(),
+                }, 503);
+            }
+
+            const body = await c.req.json() as {
+                trend: TrendData;
+                platforms?: ('tiktok' | 'reels' | 'shorts')[];
+                options?: {
+                    durationSeconds?: number;
+                    tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+                    language?: 'en' | 'tr';
+                    includeCta?: boolean;
+                    includeHook?: boolean;
+                };
+            };
+
+            if (!body.trend || !body.trend.id) {
+                return c.json({
+                    success: false,
+                    error: 'Invalid request: trend data is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const platforms = body.platforms || [...ALL_PLATFORMS];
+
+            logger.info({
+                trendId: body.trend.id,
+                category: body.trend.category,
+                platforms,
+            }, 'Generating multi-platform scripts...');
+
+            const orchestrator = getOrchestrator();
+            const result = await orchestrator.generateForPlatforms(
+                body.trend,
+                platforms,
+                body.options || {}
+            );
+
+            const summary = orchestrator.getComparisonSummary(result);
+
+            return c.json({
+                success: true,
+                data: {
+                    ...result,
+                    summary,
+                },
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            const { GeminiError } = await import('../ai/index.js');
+
+            logger.error({ error }, 'Multi-platform script generation failed');
+
+            if (error instanceof GeminiError) {
+                const statusCode = error.statusCode === 429 ? 429 : 500;
+                return c.json({
+                    success: false,
+                    error: error.message,
+                    retryable: error.retryable,
+                    timestamp: new Date().toISOString(),
+                }, statusCode);
+            }
+
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * POST /api/generate-scripts/retry
+     * Retry failed platform generations from a previous result
+     */
+    api.post('/generate-scripts/retry', async (c) => {
+        try {
+            const { getGeminiClient } = await import('../ai/index.js');
+            const { getOrchestrator } = await import('../ai/orchestrator/index.js');
+
+            const gemini = getGeminiClient();
+
+            if (!gemini.isConfigured()) {
+                return c.json({
+                    success: false,
+                    error: 'AI features are not configured.',
+                    timestamp: new Date().toISOString(),
+                }, 503);
+            }
+
+            const body = await c.req.json() as {
+                previousResult: Awaited<ReturnType<InstanceType<typeof import('../ai/orchestrator/index.js').MultiPlatformOrchestrator>['generateForAllPlatforms']>>;
+                options?: {
+                    durationSeconds?: number;
+                    tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+                    language?: 'en' | 'tr';
+                };
+            };
+
+            if (!body.previousResult || !body.previousResult.trend) {
+                return c.json({
+                    success: false,
+                    error: 'Invalid request: previousResult with trend data is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            logger.info({
+                trendId: body.previousResult.trend.id,
+            }, 'Retrying failed platforms...');
+
+            const orchestrator = getOrchestrator();
+            const result = await orchestrator.retryFailed(
+                body.previousResult,
+                body.options || {}
+            );
+
+            const summary = orchestrator.getComparisonSummary(result);
+
+            return c.json({
+                success: true,
+                data: {
+                    ...result,
+                    summary,
+                },
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Retry generation failed');
+
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * GET /api/platforms
+     * Get available platforms and their capabilities
+     */
+    api.get('/platforms', async (c) => {
+        const { ALL_PLATFORMS, PLATFORM_LABELS, PLATFORM_ALGORITHM_FOCUS, PLATFORM_COLORS } = await import('@icerik/shared');
+
+        const platforms = ALL_PLATFORMS.map(platform => ({
+            id: platform,
+            label: PLATFORM_LABELS[platform],
+            algorithmFocus: PLATFORM_ALGORITHM_FOCUS[platform],
+            colors: PLATFORM_COLORS[platform],
+        }));
+
+        return c.json({
+            success: true,
+            data: platforms,
+            timestamp: new Date().toISOString(),
+        });
+    });
+
+    /**
+     * GET /api/platforms/:platform/tips
+     * Get platform-specific optimization tips
+     */
+    api.get('/platforms/:platform/tips', async (c) => {
+        const platform = c.req.param('platform') as 'tiktok' | 'reels' | 'shorts';
+        const { ALL_PLATFORMS, PLATFORM_LABELS, PLATFORM_ALGORITHM_FOCUS } = await import('@icerik/shared');
+
+        if (!ALL_PLATFORMS.includes(platform)) {
+            return c.json({
+                success: false,
+                error: `Invalid platform. Valid platforms: ${ALL_PLATFORMS.join(', ')}`,
+                timestamp: new Date().toISOString(),
+            }, 400);
+        }
+
+        const focus = PLATFORM_ALGORITHM_FOCUS[platform];
+
+        const tips: Record<'tiktok' | 'reels' | 'shorts', string[]> = {
+            tiktok: [
+                'Hook viewers in the first 1 second - no slow intros',
+                'Use pattern interrupts every 2-3 seconds to maintain attention',
+                'Design your ending to loop seamlessly back to the beginning',
+                'Target 15-30 seconds for optimal completion rate',
+                'Use trending sounds to boost discoverability',
+                'Include comment-bait questions to drive engagement',
+            ],
+            reels: [
+                'Create shareable content - "Send this to someone who..."',
+                'Design a grid-friendly cover frame for your profile',
+                'Pack value into your content to encourage saves',
+                'Keep captions engaging with strong first line',
+                'Use 5-10 relevant hashtags in your caption',
+                'Cross-promote to Stories for additional reach',
+            ],
+            shorts: [
+                'Prevent swipe-away in first 3 seconds with bold hooks',
+                'Target 70%+ viewed rate (not swiped away)',
+                'Design for 100%+ retention through seamless loops',
+                'Include natural subscribe prompts throughout',
+                'Optimize title and description for YouTube search',
+                'Bridge to your long-form content when relevant',
+            ],
+        };
+
+        return c.json({
+            success: true,
+            data: {
+                platform,
+                label: PLATFORM_LABELS[platform],
+                algorithmFocus: focus,
+                tips: tips[platform],
             },
             timestamp: new Date().toISOString(),
         });

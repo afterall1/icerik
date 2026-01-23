@@ -4,4 +4,5 @@ export { TrendResults } from './TrendResults';
 export { TrendGrid, type ViewMode } from './TrendGrid';
 export { FilterPanel } from './FilterPanel';
 export { ScriptGeneratorModal } from './ScriptGeneratorModal';
+export { MultiPlatformScriptModal } from './MultiPlatformScriptModal';
 export { FilterSidebar } from './FilterSidebar';

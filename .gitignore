@@ -36,3 +36,4 @@ coverage/
 *.sqlite-wal
 *.sqlite-shm
 apps/engine/data/
+apps/engine/data/cache.db-wal

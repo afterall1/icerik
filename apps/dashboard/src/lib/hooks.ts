@@ -211,3 +211,79 @@ export function useVideoFormats(category: string | null) {
     });
 }
 
+// ============================================================
+// Multi-Platform Script Generation Hooks
+// ============================================================
+
+import {
+    multiPlatformApi,
+    type MultiPlatformResult,
+    type MultiPlatformRequest,
+    type MultiPlatformOptions,
+    type PlatformInfo,
+    type PlatformTips,
+    type Platform,
+} from './api';
+
+/**
+ * Query keys for multi-platform operations
+ */
+export const multiPlatformQueryKeys = {
+    all: ['multi-platform'] as const,
+    platforms: () => [...multiPlatformQueryKeys.all, 'platforms'] as const,
+    tips: (platform: string) => [...multiPlatformQueryKeys.all, 'tips', platform] as const,
+};
+
+/**
+ * Hook to generate scripts for multiple platforms simultaneously
+ *
+ * @example
+ * const { mutate, data, isPending, error } = useMultiPlatformScripts();
+ * mutate({ trend, platforms: ['tiktok', 'reels', 'shorts'] });
+ */
+export function useMultiPlatformScripts() {
+    return useMutation<MultiPlatformResult, Error, MultiPlatformRequest>({
+        mutationFn: (request) => multiPlatformApi.generateScripts(request),
+        retry: false,
+        onError: (error) => {
+            console.error('Multi-platform script generation failed:', error.message);
+        },
+    });
+}
+
+/**
+ * Hook to retry failed platform generations
+ */
+export function useRetryFailedPlatforms() {
+    return useMutation<MultiPlatformResult, Error, { previousResult: MultiPlatformResult; options?: MultiPlatformOptions }>({
+        mutationFn: ({ previousResult, options }) =>
+            multiPlatformApi.retryFailed(previousResult, options),
+        retry: false,
+        onError: (error) => {
+            console.error('Retry failed:', error.message);
+        },
+    });
+}
+
+/**
+ * Hook to fetch all platforms and their capabilities
+ */
+export function usePlatforms() {
+    return useQuery<PlatformInfo[], Error>({
+        queryKey: multiPlatformQueryKeys.platforms(),
+        queryFn: () => multiPlatformApi.getPlatforms(),
+        staleTime: 10 * 60 * 1000, // 10 minutes (platform info rarely changes)
+    });
+}
+
+/**
+ * Hook to fetch tips for a specific platform
+ */
+export function usePlatformTips(platform: Platform | null) {
+    return useQuery<PlatformTips, Error>({
+        queryKey: multiPlatformQueryKeys.tips(platform || ''),
+        queryFn: () => multiPlatformApi.getPlatformTips(platform!),
+        staleTime: 10 * 60 * 1000, // 10 minutes
+        enabled: !!platform,
+    });
+}

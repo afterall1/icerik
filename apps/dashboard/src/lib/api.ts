@@ -250,3 +250,251 @@ export const aiApi = {
         return data.data?.formats || [];
     },
 };
+
+// ============================================================
+// Multi-Platform Script Generation Types
+// ============================================================
+
+/**
+ * Platform types for multi-platform generation
+ */
+export type Platform = 'tiktok' | 'reels' | 'shorts';
+
+/**
+ * All available platforms
+ */
+export const ALL_PLATFORMS: Platform[] = ['tiktok', 'reels', 'shorts'];
+
+/**
+ * Platform display labels
+ */
+export const PLATFORM_LABELS: Record<Platform, string> = {
+    tiktok: 'TikTok',
+    reels: 'Instagram Reels',
+    shorts: 'YouTube Shorts',
+};
+
+/**
+ * Platform brand colors for UI theming
+ */
+export const PLATFORM_COLORS: Record<Platform, { primary: string; gradient: string }> = {
+    tiktok: { primary: '#000000', gradient: 'from-black to-pink-600' },
+    reels: { primary: '#E4405F', gradient: 'from-pink-500 to-purple-600' },
+    shorts: { primary: '#FF0000', gradient: 'from-red-600 to-red-800' },
+};
+
+/**
+ * Platform icons for UI
+ */
+export const PLATFORM_ICONS: Record<Platform, string> = {
+    tiktok: '🎵',
+    reels: '📸',
+    shorts: '▶️',
+};
+
+/**
+ * Script section with metadata
+ */
+export interface PlatformScriptSection {
+    content: string;
+    wordCount: number;
+    estimatedSeconds: number;
+}
+
+/**
+ * Platform-specific generated script
+ */
+export interface PlatformScript {
+    platform: Platform;
+    script: string;
+    title: string;
+    hashtags: string[];
+    estimatedDurationSeconds: number;
+    sections: {
+        hook?: PlatformScriptSection;
+        body: PlatformScriptSection;
+        cta?: PlatformScriptSection;
+    };
+    optimizations: string[];
+    metadata: {
+        generatedAt: string;
+        trendId: string;
+        category: string;
+        agentVersion: string;
+    };
+}
+
+/**
+ * Individual platform result (success or failure)
+ */
+export type PlatformScriptResult =
+    | { success: true; script: PlatformScript }
+    | { success: false; error: string; retryable: boolean };
+
+/**
+ * Platform comparison summary
+ */
+export interface PlatformComparisonSummary {
+    platformSummaries: Array<{
+        platform: Platform;
+        status: 'success' | 'failed';
+        estimatedDuration?: number;
+        optimizations?: string[];
+        error?: string;
+    }>;
+    recommendation: string;
+}
+
+/**
+ * Multi-platform generation result
+ */
+export interface MultiPlatformResult {
+    trend: TrendData;
+    results: {
+        tiktok?: PlatformScriptResult;
+        reels?: PlatformScriptResult;
+        shorts?: PlatformScriptResult;
+    };
+    metadata: {
+        requestedAt: string;
+        completedAt: string;
+        totalDurationMs: number;
+        successCount: number;
+        failureCount: number;
+    };
+    summary: PlatformComparisonSummary;
+}
+
+/**
+ * Multi-platform generation options
+ */
+export interface MultiPlatformOptions {
+    platforms?: Platform[];
+    durationSeconds?: number;
+    tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+    language?: 'en' | 'tr';
+    includeCta?: boolean;
+    includeHook?: boolean;
+}
+
+/**
+ * Multi-platform generation request
+ */
+export interface MultiPlatformRequest {
+    trend: TrendData;
+    platforms?: Platform[];
+    options?: MultiPlatformOptions;
+}
+
+/**
+ * Platform info from API
+ */
+export interface PlatformInfo {
+    id: Platform;
+    label: string;
+    algorithmFocus: {
+        primaryMetrics: string[];
+        optimalDuration: { min: number; max: number; ideal: number };
+        hookTiming: { criticalSeconds: number; description: string };
+        loopStrategy: { recommended: boolean; description: string };
+        ctaGuidance: string;
+        hashtagStrategy: { count: { min: number; max: number }; style: string };
+    };
+    colors: { primary: string; secondary: string };
+}
+
+/**
+ * Platform tips response
+ */
+export interface PlatformTips {
+    platform: Platform;
+    label: string;
+    algorithmFocus: PlatformInfo['algorithmFocus'];
+    tips: string[];
+}
+
+/**
+ * Multi-Platform API client
+ */
+export const multiPlatformApi = {
+    /**
+     * Generate scripts for multiple platforms simultaneously
+     */
+    async generateScripts(request: MultiPlatformRequest): Promise<MultiPlatformResult> {
+        const response = await fetch(`${API_BASE}/generate-scripts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Multi-platform generation failed' }));
+            throw new Error(error.error || `API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<MultiPlatformResult> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Multi-platform generation failed');
+        }
+
+        return data.data as MultiPlatformResult;
+    },
+
+    /**
+     * Retry failed platform generations
+     */
+    async retryFailed(previousResult: MultiPlatformResult, options?: MultiPlatformOptions): Promise<MultiPlatformResult> {
+        const response = await fetch(`${API_BASE}/generate-scripts/retry`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ previousResult, options }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Retry failed' }));
+            throw new Error(error.error || `API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<MultiPlatformResult> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Retry failed');
+        }
+
+        return data.data as MultiPlatformResult;
+    },
+
+    /**
+     * Get all platforms with their capabilities
+     */
+    async getPlatforms(): Promise<PlatformInfo[]> {
+        const response = await fetch(`${API_BASE}/platforms`);
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<PlatformInfo[]> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to get platforms');
+        }
+
+        return data.data as PlatformInfo[];
+    },
+
+    /**
+     * Get optimization tips for a specific platform
+     */
+    async getPlatformTips(platform: Platform): Promise<PlatformTips> {
+        const response = await fetch(`${API_BASE}/platforms/${platform}/tips`);
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<PlatformTips> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to get platform tips');
+        }
+
+        return data.data as PlatformTips;
+    },
+};
+
