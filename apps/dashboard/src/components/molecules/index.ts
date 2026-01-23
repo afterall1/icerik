@@ -6,3 +6,4 @@ export { ScriptPreview } from './ScriptPreview';
 export { CategoryTabs } from './CategoryTabs';
 export { SearchBar } from './SearchBar';
 export { NesTooltip } from './NesTooltip';
+export { RateLimitStatus } from './RateLimitStatus';

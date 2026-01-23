@@ -7,7 +7,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ErrorBoundary } from './components/atoms';
+import { ErrorBoundary, ToastProvider } from './components/atoms';
 import './index.css';
 import App from './App.tsx';
 
@@ -46,9 +46,11 @@ function handleGlobalError(error: Error, errorInfo: React.ErrorInfo): void {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ErrorBoundary onError={handleGlobalError} showDetails={import.meta.env.DEV}>
-        <App />
-      </ErrorBoundary>
+      <ToastProvider>
+        <ErrorBoundary onError={handleGlobalError} showDetails={import.meta.env.DEV}>
+          <App />
+        </ErrorBoundary>
+      </ToastProvider>
     </QueryClientProvider>
   </StrictMode>
 );

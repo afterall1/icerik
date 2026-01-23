@@ -6,6 +6,42 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.6.0] - 2026-01-23
+
+### 🏗️ Infrastructure & Quality (Phase 10)
+
+Docker containerization, E2E testing, ve UX improvements.
+
+### Added
+- **Docker Configuration**
+  - `apps/engine/Dockerfile` - Multi-stage build, non-root user
+  - `apps/dashboard/Dockerfile` - Nginx static serving
+  - `apps/dashboard/nginx.conf` - API proxy, gzip, SPA routing
+  - `docker-compose.yml` - Both services with health checks
+
+- **E2E Tests (Playwright)**
+  - `playwright.config.ts` - Multi-browser, mobile viewports
+  - `e2e/dashboard.spec.ts` - 9 tests (homepage, filtering, search, URL sync)
+  - Scripts: `npm run test:e2e`, `npm run test:e2e:ui`
+
+- **Toast Notification System**
+  - `Toast.tsx` - ToastProvider, useToast hook
+  - 4 types: success, error, warning, info
+  - Auto-dismiss, stacking (max 5)
+
+- **Rate Limit Dashboard**
+  - `RateLimitStatus.tsx` - Health indicator, progress bar
+  - Auto-refresh every 10 seconds
+  - Compact and full view modes
+
+### Technical
+- 9 new files added
+- ~850 lines of new code
+- Build size: 90.03 kB gzipped
+- 14 unit tests + 9 E2E tests
+
+---
+
 ## [1.5.0] - 2026-01-23
 
 ### 🎯 Production Polish (Phase 9)

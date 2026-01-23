@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Build outputs (we rebuild in Docker)
+dist
+
+# Development files
+.env
+.env.local
+*.log
+
+# Test files
+coverage
+e2e
+*.test.ts
+*.test.tsx
+*.spec.ts
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

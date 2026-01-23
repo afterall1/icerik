@@ -3,6 +3,7 @@ export { Button } from './Button';
 export { Card } from './Card';
 export { Badge } from './Badge';
 export { ErrorBoundary } from './ErrorBoundary';
+export { ToastProvider, useToast, type Toast, type ToastType } from './Toast';
 export {
     Skeleton,
     SkeletonText,
