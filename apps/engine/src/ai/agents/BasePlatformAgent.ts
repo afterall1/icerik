@@ -21,6 +21,8 @@ import type {
 import { PLATFORM_ALGORITHM_FOCUS, PLATFORM_LABELS } from '@icerik/shared';
 import { getGeminiClient, GeminiError } from '../gemini.js';
 import { createChildLogger } from '../../utils/logger.js';
+import { compilePlatformKnowledge } from '../knowledge/index.js';
+
 
 /**
  * Agent generation options (internal)
@@ -276,12 +278,15 @@ export abstract class BasePlatformAgent implements PlatformAlgorithmExpert {
 
     /**
      * Build the complete content prompt
-     * Combines base prompt with platform-specific additions
+     * Combines base prompt with platform-specific additions and knowledge base
      */
     protected buildContentPrompt(trend: TrendData, options: AgentOptions): string {
         const langInstructions = LANGUAGE_INSTRUCTIONS[options.language];
         const platformLabel = PLATFORM_LABELS[this.platform];
         const algoFocus = this.algorithmFocus;
+
+        // Load platform-specific knowledge from knowledge base
+        const platformKnowledge = compilePlatformKnowledge(this.platform);
 
         const basePrompt = `
 # Content Brief for ${platformLabel}
@@ -344,6 +349,17 @@ Generate a complete, ready-to-read video script. Include:
 ⚠️ FINAL REMINDER: Total script must be under ${Math.round(options.durationSeconds * 2.5)} words. Short-form content wins!
 `;
 
+        // Inject platform knowledge from knowledge base
+        const knowledgeSection = platformKnowledge ? `
+## 🧠 DEEP PLATFORM KNOWLEDGE (Use this to craft better content)
+You have access to deep algorithmic knowledge for ${platformLabel}. Apply these insights:
+
+${platformKnowledge}
+
+---
+📌 Use the above knowledge to create algorithm-optimized content.
+` : '';
+
         // Get few-shot example for this category
         const fewShotExample = getFewShotExample(trend.category);
         const fewShotSection = fewShotExample ? `
@@ -359,7 +375,7 @@ ${fewShotExample}
         // Add platform-specific prompt additions
         const platformPrompt = this.buildPlatformPrompt(trend, options);
 
-        return basePrompt + '\n\n' + fewShotSection + '\n\n' + platformPrompt;
+        return basePrompt + '\n\n' + knowledgeSection + '\n\n' + fewShotSection + '\n\n' + platformPrompt;
     }
 
     /**
