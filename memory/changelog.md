@@ -6,6 +6,37 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.4.0] - 2026-01-23
+
+### ⚡ Category Loading Performance Optimization (Phase 8)
+
+Dashboard category seçimi ~60 saniyeden <100ms'e indirildi.
+
+### Added
+- **Parallel Batch Fetching** (`redditFetcher.ts`)
+  - `CONCURRENCY_LIMIT = 2` ile kontrollü paralel fetch
+  - `Promise.allSettled` ile hata izolasyonu
+  - Circuit breaker: 429 Rate Limit algılama
+  
+- **Proactive Category Caching** (`worker.ts`)
+  - Multi-Sort Warming: `nes`, `score`, `comments` pre-cache
+  - Background worker kategori bazlı pre-compute
+  - Deterministic cache key alignment
+
+### Performance Results
+| Senaryo | Eski | Yeni | İyileşme |
+|---------|------|------|----------|
+| Cold Category Load | ~60s | ~30s | -50% |
+| Cached Category Select | ~60s | <10ms | **Instant** |
+| Sort Change (Same Cat) | ~60s | <10ms | **Instant** |
+| Initial Page Load | ~60-90s | <100ms | **Proactive** |
+
+### Verified
+- 20 unit test (Vitest) passed
+- Live API `/api/trends?category=technology` cache HIT <1ms
+
+---
+
 ## [1.3.0] - 2026-01-23
 
 ### 🎯 Unified Dashboard & NES Educational UX

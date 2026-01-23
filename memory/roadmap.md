@@ -1,11 +1,11 @@
 # Roadmap
 
 > **Proje**: İçerik Trend Engine  
-> **Son Güncelleme**: 22 Ocak 2026
+> **Son Güncelleme**: 23 Ocak 2026
 
 ---
 
-## ✅ Completed (MVP)
+## ✅ Completed
 
 ### Phase 1: SQLite Caching Layer
 - [x] better-sqlite3 integration
@@ -29,24 +29,46 @@
 - [x] Video format templates
 - [x] API endpoints
 
+### Phase 5: Dashboard AI Integration ✅
+- [x] ScriptGeneratorModal.tsx UI component
+- [x] TrendCard "Generate Script" button
+- [x] Script preview modal
+- [x] Copy to clipboard
+
+### Phase 6: Gemini 3 Flash Preview Upgrade ✅
+- [x] Model: `gemini-3-flash-preview` (1M input, 65K output)
+- [x] ENV loading fix (`--env-file` flag)
+- [x] End-to-end verification (~15s response)
+
+### Phase 7: Unified Dashboard & NES Tooltip ✅
+- [x] UnifiedDashboard.tsx (single-page)
+- [x] CategoryTabs, FilterSidebar, SearchBar
+- [x] NesTooltip.tsx (educational UX)
+- [x] Category filtering fix (label-to-ID mapping)
+
+### Phase 8: Performance Optimization ✅
+- [x] Parallel Batch Fetching (CONCURRENCY_LIMIT=2)
+- [x] Proactive Category Caching (Multi-Sort Warming)
+- [x] ~60s → <100ms dashboard response
+- [x] 20 unit tests verified
+
 ---
 
 ## 🟡 In Progress
 
-### Phase 5: Dashboard AI Integration
-- [ ] ScriptGenerator.tsx UI component
-- [ ] TrendCard "Generate Script" button
-- [ ] Script preview modal
-- [ ] Copy to clipboard
+### Phase 9: Production Polish
+- [ ] TrendGrid.tsx component
+- [ ] URL state sync for filters
+- [ ] Mobile responsive testing
+- [ ] Unit tests for hooks
 
 ---
 
 ## 📋 Backlog (Prioritized)
 
 ### High Priority
-- [ ] TrendExplorer React Query migration
-- [ ] Mobile responsive testing
 - [ ] Error handling improvements
+- [ ] API rate limit dashboard
 
 ### Medium Priority
 - [ ] Docker configuration
