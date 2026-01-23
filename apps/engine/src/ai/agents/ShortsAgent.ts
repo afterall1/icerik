@@ -169,6 +169,41 @@ Include these markers:
             ...baseTags,
         ].slice(0, 5);
     }
+
+    /**
+     * YouTube Shorts Visual Style Guide
+     * Thumbnail-focused, professional YouTube aesthetic
+     */
+    getVisualStyle() {
+        return {
+            aesthetic: 'professional' as const,
+            textStyles: {
+                fontWeight: 'bold' as const,
+                fontSize: 'large' as const,
+                animation: 'slide' as const,
+            },
+            colors: {
+                primary: '#FF0000',   // YouTube red
+                accent: '#FFFFFF',
+                text: '#FFFFFF',
+                background: '#0F0F0F',
+            },
+            thumbnailGuidance: 'Thumbnail-friendly frames. Clear, readable text. Expressive faces work well. YouTube SEO-optimized title overlays.',
+        };
+    }
+
+    /**
+     * YouTube Shorts Audio Recommendations
+     * Voice-focused content, educational style
+     */
+    getAudioStyle() {
+        return {
+            preferredType: 'voice_focused' as const,
+            voiceStyle: 'conversational' as const,
+            musicIntensity: 'low' as const,
+            guidance: 'Voice-first content performs well. Clear, educational delivery. Music should be subtle background. YouTube prefers original voice content.',
+        };
+    }
 }
 
 /**

@@ -21,7 +21,7 @@ const GEMINI_CONFIG = {
     MAX_RETRIES: 3,
     RETRY_DELAY_MS: 1000,
     TIMEOUT_MS: 30000,
-    MAX_TOKENS: 2048,
+    // No MAX_TOKENS limit - let AI use full model capacity for best content quality
     TEMPERATURE: 0.7,
 } as const;
 
@@ -184,7 +184,7 @@ export class GeminiClient {
             ],
             generationConfig: {
                 temperature: options.temperature ?? GEMINI_CONFIG.TEMPERATURE,
-                maxOutputTokens: options.maxTokens ?? GEMINI_CONFIG.MAX_TOKENS,
+                // No maxOutputTokens limit - allow full model capacity for complete viral content
                 topP: 0.8,
                 topK: 40,
             },
@@ -246,10 +246,24 @@ export class GeminiClient {
                     throw new GeminiError('Empty response from Gemini', undefined, true);
                 }
 
+                // Check for truncation due to token limit
+                const finishReason = data.candidates[0]?.finishReason;
+                if (finishReason === 'MAX_TOKENS') {
+                    logger.warn({
+                        finishReason,
+                        responseLength: generatedText.length,
+                    }, 'Response was truncated due to token limit!');
+                } else if (finishReason !== 'STOP') {
+                    logger.warn({
+                        finishReason,
+                    }, 'Unexpected finish reason from Gemini');
+                }
+
                 logger.info({
                     attempt,
                     promptLength: prompt.length,
                     responseLength: generatedText.length,
+                    finishReason,
                     tokens: data.usageMetadata,
                 }, 'Content generated successfully');
 

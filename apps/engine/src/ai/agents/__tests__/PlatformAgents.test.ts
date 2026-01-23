@@ -98,7 +98,7 @@ describe('Platform Agents', () => {
             const agent = new TikTokAgent();
             const duration = agent.getOptimalDuration();
             expect(duration.min).toBe(15);
-            expect(duration.max).toBe(60);
+            expect(duration.max).toBe(30);
             expect(duration.ideal).toBe(21);
         });
 

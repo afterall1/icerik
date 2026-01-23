@@ -167,6 +167,41 @@ Include these markers:
             '#viral',
         ].slice(0, 8);
     }
+
+    /**
+     * Instagram Reels Visual Style Guide
+     * Aesthetic, polished visuals optimized for shareability
+     */
+    getVisualStyle() {
+        return {
+            aesthetic: 'aesthetic' as const,
+            textStyles: {
+                fontWeight: 'regular' as const,
+                fontSize: 'medium' as const,
+                animation: 'fade' as const,
+            },
+            colors: {
+                primary: '#833AB4',   // Instagram purple
+                accent: '#FD1D1D',    // Instagram gradient red
+                text: '#FFFFFF',
+                background: '#121212',
+            },
+            thumbnailGuidance: 'Clean, grid-friendly cover. Aesthetic feel, lifestyle-oriented. Text should be minimal and elegant.',
+        };
+    }
+
+    /**
+     * Instagram Reels Audio Recommendations
+     * Original audio preferred, medium intensity
+     */
+    getAudioStyle() {
+        return {
+            preferredType: 'original' as const,
+            voiceStyle: 'calm' as const,
+            musicIntensity: 'medium' as const,
+            guidance: 'Original audio can go viral. Calm, conversational voiceover. Background music should complement, not overpower.',
+        };
+    }
 }
 
 /**

@@ -318,6 +318,20 @@ export function PlatformScriptCard({ platform, result, isLoading, onRetry }: Pla
                 appliedOptimizations={script.optimizations}
             />
 
+            {/* Warnings - Show if script was trimmed or has issues */}
+            {script.warnings && script.warnings.length > 0 && (
+                <div className="px-3 py-2 border-t border-amber-800/50 bg-amber-900/20">
+                    <div className="flex items-start gap-2 text-xs text-amber-400">
+                        <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <div className="flex flex-wrap gap-x-2 gap-y-1">
+                            {script.warnings.map((warning, i) => (
+                                <span key={i}>{warning}</span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Hashtags */}
             <div className="px-3 py-2 border-t border-slate-800 flex flex-wrap gap-1">
                 {script.hashtags.slice(0, 5).map((tag, i) => (

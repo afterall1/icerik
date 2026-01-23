@@ -26,16 +26,6 @@ export const CACHE_TTL = {
 } as const;
 
 /**
- * Cache entry structure for stored data
- */
-interface CacheEntry<T> {
-    data: T;
-    cachedAt: string;
-    expiresAt: string;
-    hitCount: number;
-}
-
-/**
  * Cache result with metadata
  */
 export interface CacheResult<T> {

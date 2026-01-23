@@ -12,6 +12,9 @@ import type {
     Platform,
     PlatformScript,
     PlatformAlgorithmFocus,
+    PlatformAlgorithmExpert,
+    VisualStyle,
+    AudioStyle,
     ScriptSection,
     MultiPlatformOptions,
 } from '@icerik/shared';
@@ -82,12 +85,86 @@ const CATEGORY_CONTEXT: Record<ContentCategory, string> = {
 };
 
 /**
+ * Few-shot examples for each category
+ * These demonstrate ideal script structure and length (15-21s, ~40-52 words)
+ */
+const FEW_SHOT_EXAMPLES: Partial<Record<ContentCategory, string>> = {
+    technology: `[HOOK]
+Ring kapı zili sizi gizlice takip ediyor! [TEXT: "GİZLİ TAKİP"]
+
+[BODY]
+Flock güvenlik sistemi, kapınızın önündeki görüntüleri ICE'a gönderiyor. Mahallenizdeki her hareket kayıt altında. Güvenlik mi, gözetim mi?
+
+[CTA]
+Bunu herkes bilsin, paylaş!
+
+[TITLE]
+Kapı Ziliniz Sizi İzliyor 👁️
+
+[HASHTAGS]
+#teknoloji #gizlilik #güvenlik #viral`,
+
+    finance: `[HOOK]
+3 haftada emekli oldu, nasıl mı? [ZOOM IN]
+
+[BODY]
+GameStop hisseleri yine patladı. 10 dolarlık yatırım şimdi 10 bin dolar. Reddit yatırımcıları sistemi sarstı.
+
+[CTA]
+Yorumlara yaz, sen girdin mi?
+
+[TITLE]
+GameStop Yine Patladı 🚀
+
+[HASHTAGS]
+#borsa #yatırım #gamestop #finansal`,
+
+    entertainment: `[HOOK]
+Bu sahne interneti kırdı! [DRAMATIC PAUSE]
+
+[BODY]
+Yeni Marvel filmindeki plot twist kimseyi bırakmadı. Sosyal medya çöktü, herkes aynı şeyi konuşuyor.
+
+[CTA]
+İzledin mi? Yorum bırak!
+
+[TITLE]
+Marvel Herkesi Şoke Etti 🎬
+
+[HASHTAGS]
+#marvel #film #spoiler #viral`,
+
+    gaming: `[HOOK]
+Bu oyuncu tarihe geçti! [REPLAY]
+
+[BODY]
+Dünya şampiyonasında son saniye hamlesi. 1 vs 5 clutch, herkes ayakta. E-spor tarihinin en iyi anı.
+
+[CTA]
+Sen olsan ne yapardın?
+
+[TITLE]
+E-Spor Tarihinin En İyi Anı 🎮
+
+[HASHTAGS]
+#esports #gaming #clutch #viral`,
+};
+
+/**
+ * Get few-shot example for a category
+ * Falls back to technology example if category not found
+ */
+function getFewShotExample(category: ContentCategory): string {
+    return FEW_SHOT_EXAMPLES[category] || FEW_SHOT_EXAMPLES.technology || '';
+}
+
+/**
  * Abstract Base Platform Agent
  *
  * All platform-specific agents must extend this class and implement
  * the abstract methods for platform-specific customization.
  */
-export abstract class BasePlatformAgent {
+export abstract class BasePlatformAgent implements PlatformAlgorithmExpert {
     /** Platform identifier */
     abstract readonly platform: Platform;
 
@@ -267,31 +344,49 @@ Generate a complete, ready-to-read video script. Include:
 ⚠️ FINAL REMINDER: Total script must be under ${Math.round(options.durationSeconds * 2.5)} words. Short-form content wins!
 `;
 
+        // Get few-shot example for this category
+        const fewShotExample = getFewShotExample(trend.category);
+        const fewShotSection = fewShotExample ? `
+## 📝 REFERENCE EXAMPLE (Follow this structure and length!)
+Below is an ideal 21-second script (~45 words). Match this format and brevity:
+
+${fewShotExample}
+
+---
+⚠️ YOUR SCRIPT SHOULD BE SIMILAR IN LENGTH AND STRUCTURE.
+` : '';
+
         // Add platform-specific prompt additions
         const platformPrompt = this.buildPlatformPrompt(trend, options);
 
-        return basePrompt + '\n\n' + platformPrompt;
+        return basePrompt + '\n\n' + fewShotSection + '\n\n' + platformPrompt;
     }
 
     /**
      * Parse AI response into structured PlatformScript
+     *
+     * Uses newline-aware regex to properly handle nested brackets like [TEXT: "..."] or [ZOOM IN]
+     * Enforces strict word limits via post-generation trimming.
      */
     protected parseResponse(
         response: string,
         trend: TrendData,
         options: AgentOptions
     ): PlatformScript {
-        // Extract sections using regex
-        const hookMatch = response.match(/\[HOOK\]([\s\S]*?)(?=\[BODY\]|\[CTA\]|$)/i);
-        const bodyMatch = response.match(/\[BODY\]([\s\S]*?)(?=\[CTA\]|\[TITLE\]|$)/i);
-        const ctaMatch = response.match(/\[CTA\]([\s\S]*?)(?=\[TITLE\]|\[HASHTAGS\]|$)/i);
-        const titleMatch = response.match(/\[TITLE\]([\s\S]*?)(?=\[HASHTAGS\]|$)/i);
-        const hashtagsMatch = response.match(/\[HASHTAGS\]([\s\S]*?)$/i);
+        // Extract sections using newline-aware regex
+        // Pattern: Look for section markers that appear at start of a line or after newline
+        // This prevents false matches on inline markers like [TEXT: "..."] or [ZOOM IN]
+        const hookMatch = response.match(/\[HOOK\]\s*([\s\S]*?)(?=\n\s*\[(?:BODY|CTA|TITLE|HASHTAGS)\]|$)/i);
+        const bodyMatch = response.match(/\[BODY\]\s*([\s\S]*?)(?=\n\s*\[(?:CTA|TITLE|HASHTAGS)\]|$)/i);
+        const ctaMatch = response.match(/\[CTA\]\s*([\s\S]*?)(?=\n\s*\[(?:TITLE|HASHTAGS)\]|$)/i);
+        const titleMatch = response.match(/\[TITLE\]\s*([\s\S]*?)(?=\n\s*\[HASHTAGS\]|$)/i);
+        const hashtagsMatch = response.match(/\[HASHTAGS\]\s*([\s\S]*?)$/i);
 
-        const hookText = hookMatch?.[1]?.trim() || '';
-        const bodyText = bodyMatch?.[1]?.trim() || response.trim();
-        const ctaText = ctaMatch?.[1]?.trim() || '';
-        const suggestedTitle = titleMatch?.[1]?.trim() || trend.title;
+        // Clean and extract section content
+        const hookText = this.cleanSectionContent(hookMatch?.[1] || '');
+        const bodyText = this.cleanSectionContent(bodyMatch?.[1] || '') || this.cleanSectionContent(response);
+        const ctaText = this.cleanSectionContent(ctaMatch?.[1] || '');
+        const suggestedTitle = this.cleanSectionContent(titleMatch?.[1] || '') || trend.title;
 
         // Parse hashtags
         const hashtagsRaw = hashtagsMatch?.[1]?.trim() || '';
@@ -301,17 +396,40 @@ Generate a complete, ready-to-read video script. Include:
             .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
             .slice(0, this.algorithmFocus.hashtagStrategy.count.max);
 
-        // Build sections with metadata
+        // Build initial sections - NO TRIMMING, AI should generate correct length
         const hookSection = hookText ? this.createSection(hookText) : undefined;
         const bodySection = this.createSection(bodyText);
         const ctaSection = ctaText ? this.createSection(ctaText) : undefined;
 
-        // Build complete script
-        const fullScript = [hookText, bodyText, ctaText].filter(Boolean).join('\n\n');
+        // Build complete script from sections
+        const fullScript = [
+            hookSection?.content,
+            bodySection.content,
+            ctaSection?.content
+        ].filter(Boolean).join('\n\n');
 
-        // Calculate total duration
+        // Calculate total duration from sections
         const totalWords = (hookSection?.wordCount || 0) + bodySection.wordCount + (ctaSection?.wordCount || 0);
         const estimatedDuration = Math.round(totalWords / 2.5);
+
+        // Collect warnings - only for genuinely problematic content
+        const warnings: string[] = [];
+
+        // Check for incomplete sections (after trimming)
+        if (hookSection && !this.validateSectionCompleteness(hookSection)) {
+            warnings.push('Hook bölümü tamamlanmamış görünüyor');
+        }
+        if (!this.validateSectionCompleteness(bodySection)) {
+            warnings.push('Body bölümü tamamlanmamış görünüyor');
+        }
+        if (ctaSection && !this.validateSectionCompleteness(ctaSection)) {
+            warnings.push('CTA bölümü tamamlanmamış görünüyor');
+        }
+
+        // Check for abnormally short content
+        if (totalWords < 15) {
+            warnings.push('Script çok kısa - AI yanıtı eksik olabilir');
+        }
 
         return {
             platform: this.platform,
@@ -331,6 +449,85 @@ Generate a complete, ready-to-read video script. Include:
                 category: trend.category,
                 agentVersion: this.version,
             },
+            warnings: warnings.length > 0 ? warnings : undefined,
+        };
+    }
+
+    /**
+     * Clean section content by removing markdown artifacts and excess whitespace
+     */
+    protected cleanSectionContent(content: string): string {
+        return content
+            // Remove markdown bold/italic markers (**, ***, *)
+            .replace(/^\*{1,3}\s*|\s*\*{1,3}$/gm, '')
+            // Remove orphaned markdown markers in the middle
+            .replace(/\*{2,}/g, '')
+            // Normalize whitespace - collapse multiple newlines
+            .replace(/\n{3,}/g, '\n\n')
+            // Remove leading/trailing whitespace from each line
+            .split('\n')
+            .map(line => line.trim())
+            .join('\n')
+            // Final trim
+            .trim();
+    }
+
+    /**
+     * Validate if a section appears to be complete (ends with punctuation)
+     */
+    protected validateSectionCompleteness(section: ScriptSection): boolean {
+        const content = section.content.trim();
+        // Check if content ends with proper punctuation
+        const endsWithPunctuation = /[.!?…"']$/.test(content);
+        // Check minimum word count (very short sections are suspicious)
+        const hasMinimumWords = section.wordCount >= 5;
+        // Check if last word appears truncated (ends with letters, no punctuation)
+        const lastWord = content.split(/\s+/).pop() || '';
+        const lastWordTruncated = /^[a-zA-ZçğıöşüÇĞİÖŞÜ]+$/.test(lastWord) && lastWord.length > 2;
+
+        // Section is complete if it ends with punctuation OR has minimum words and doesn't look truncated
+        return endsWithPunctuation || (hasMinimumWords && !lastWordTruncated);
+    }
+
+    /**
+     * Enforce word limit on a section by trimming content
+     * 
+     * Tries to trim at sentence boundaries for cleaner results.
+     * If no sentence boundary found, trims at word boundary and adds ellipsis.
+     */
+    protected enforceWordLimit(
+        section: ScriptSection,
+        maxWords: number
+    ): { section: ScriptSection; wasTrimmed: boolean } {
+        if (section.wordCount <= maxWords) {
+            return { section, wasTrimmed: false };
+        }
+
+        const content = section.content;
+        const words = content.split(/\s+/);
+
+        // Take only maxWords
+        const trimmedWords = words.slice(0, maxWords);
+        let trimmedContent = trimmedWords.join(' ');
+
+        // Try to find a sentence boundary within the trimmed content
+        // Look for last complete sentence (ends with . ! ? ...)
+        const sentenceEndMatch = trimmedContent.match(/^([\s\S]*[.!?…])\s*[^.!?…]*$/);
+
+        if (sentenceEndMatch && sentenceEndMatch[1].split(/\s+/).length >= Math.floor(maxWords * 0.5)) {
+            // We found a sentence boundary that keeps at least 50% of allowed words
+            trimmedContent = sentenceEndMatch[1].trim();
+        } else {
+            // No good sentence boundary, just add ellipsis
+            trimmedContent = trimmedContent.trim();
+            // Clean trailing punctuation if incomplete
+            trimmedContent = trimmedContent.replace(/[,;:]$/, '');
+            trimmedContent += '...';
+        }
+
+        return {
+            section: this.createSection(trimmedContent),
+            wasTrimmed: true,
         };
     }
 
@@ -338,9 +535,10 @@ Generate a complete, ready-to-read video script. Include:
      * Create a section with word count and duration metadata
      */
     protected createSection(content: string): ScriptSection {
-        const wordCount = content.split(/\s+/).filter(Boolean).length;
+        const cleanedContent = this.cleanSectionContent(content);
+        const wordCount = cleanedContent.split(/\s+/).filter(Boolean).length;
         return {
-            content,
+            content: cleanedContent,
             wordCount,
             estimatedSeconds: Math.round(wordCount / 2.5),
         };
@@ -366,4 +564,16 @@ Generate a complete, ready-to-read video script. Include:
     getOptimalDuration(): { min: number; max: number; ideal: number } {
         return this.algorithmFocus.optimalDuration;
     }
+
+    /**
+     * Get platform-specific visual style guide
+     * Each platform agent must implement this to define its visual aesthetic
+     */
+    abstract getVisualStyle(): VisualStyle;
+
+    /**
+     * Get platform-specific audio recommendations
+     * Each platform agent must implement this to define its audio style
+     */
+    abstract getAudioStyle(): AudioStyle;
 }

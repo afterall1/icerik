@@ -6,6 +6,7 @@ import { getNesCalculator, getTrendAggregator } from '../processing/index.js';
 import { getCacheService, getDatabaseStats, CACHE_TTL } from '../cache/index.js';
 import { SUBREDDIT_CONFIG, CATEGORY_LABELS, CATEGORY_VIDEO_FORMATS } from '@icerik/shared';
 import type { TrendQuery, ContentCategory, ApiResponse, TrendSummary, TrendData, SubredditConfig } from '@icerik/shared';
+import type { VideoFormat } from '../ai/scriptGenerator.js';
 import { createChildLogger } from '../utils/logger.js';
 
 const logger = createChildLogger('api');
@@ -476,7 +477,7 @@ export function createApiRouter(): Hono {
             const body = await c.req.json() as {
                 trend: TrendData;
                 options?: {
-                    format?: string;
+                    format?: VideoFormat;
                     durationSeconds?: number;
                     platform?: 'tiktok' | 'reels' | 'shorts' | 'all';
                     tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';

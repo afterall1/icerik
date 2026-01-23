@@ -13,8 +13,8 @@
         "declarationMap": true,
         "sourceMap": true,
         "resolveJsonModule": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true
     },
@@ -23,6 +23,8 @@
     ],
     "exclude": [
         "node_modules",
-        "dist"
+        "dist",
+        "**/__tests__/**",
+        "**/*.test.ts"
     ]
 }

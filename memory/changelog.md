@@ -6,6 +6,45 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.8.0] - 2026-01-24
+
+### 🏗️ Multi-Modal Architecture & AI Quality (Phase 12)
+
+Multi-modal agent temeli atıldı, AI script kalitesi kritik iyileştirmeler.
+
+### Added
+- **Multi-Modal Agent Architecture (Phase 1)**
+  - `PlatformAlgorithmExpert` interface (`platformTypes.ts`)
+  - `VisualStyle`, `AudioStyle` interface'leri
+  - Platform-specific style implementations (TikTok/Reels/Shorts)
+
+- **Supervisor Agent System**
+  - `ScriptValidator.ts` - Validation rules, violations, feedback
+  - `SupervisorAgent.ts` - Orchestration with retry (max 3)
+  - Export modules: `validation/index.ts`, `supervisor/index.ts`
+
+- **AI Quality Improvements**
+  - `finishReason` logging for truncation detection
+  - Few-shot examples for category-specific scripts
+  - Warnings display in `PlatformScriptCard.tsx`
+
+### Changed
+- **Token Limit Removed** - `maxOutputTokens` parameter completely removed
+- **Zero Trim Policy** - No post-generation content trimming
+- TikTok `optimalDuration.max` 60 → 30 seconds (algorithm alignment)
+
+### Fixed
+- TypeScript build: Test files excluded, unused interface removed
+- `VideoFormat` type import in `routes.ts`
+
+### Technical
+- 6 new files added
+- 8 files modified
+- ~700 lines of new code
+- 48 unit tests passing
+
+---
+
 ## [1.6.0] - 2026-01-23
 
 ### 🏗️ Infrastructure & Quality (Phase 10)

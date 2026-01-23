@@ -44,3 +44,23 @@ export {
     getOrchestrator,
     resetOrchestrator,
 } from './orchestrator/index.js';
+
+// Validation
+export {
+    ScriptValidator,
+    getValidator,
+    getValidationRules,
+    type ValidationRules,
+    type ValidationResult,
+    type Violation,
+} from './validation/index.js';
+
+// Supervisor Agent
+export {
+    SupervisorAgent,
+    getSupervisor,
+    resetSupervisor,
+    type SupervisedOptions,
+    type SupervisedScriptResult,
+    type SupervisedResult,
+} from './supervisor/index.js';

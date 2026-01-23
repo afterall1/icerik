@@ -184,6 +184,41 @@ Include these markers in your script:
             '#viral',
         ].slice(0, 5);
     }
+
+    /**
+     * TikTok Visual Style Guide
+     * Bold, high-contrast visuals optimized for FYP algorithm
+     */
+    getVisualStyle() {
+        return {
+            aesthetic: 'bold' as const,
+            textStyles: {
+                fontWeight: 'bold' as const,
+                fontSize: 'large' as const,
+                animation: 'pop' as const,
+            },
+            colors: {
+                primary: '#FE2C55',   // TikTok red
+                accent: '#25F4EE',    // TikTok cyan
+                text: '#FFFFFF',
+                background: '#000000',
+            },
+            thumbnailGuidance: 'High contrast, expressive faces, bold text overlay. Meme aesthetic works well.',
+        };
+    }
+
+    /**
+     * TikTok Audio Recommendations
+     * Trending sounds and high-energy voiceovers
+     */
+    getAudioStyle() {
+        return {
+            preferredType: 'viral_sound' as const,
+            voiceStyle: 'energetic' as const,
+            musicIntensity: 'high' as const,
+            guidance: 'Use trending sounds from TikTok\'s sound library. Fast-paced, high energy. Voiceover should match Gen Z cadence.',
+        };
+    }
 }
 
 /**

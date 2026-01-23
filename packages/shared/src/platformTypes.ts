@@ -60,12 +60,79 @@ export interface PlatformAlgorithmFocus {
 }
 
 /**
+ * Platform-specific visual style configuration
+ * Used for thumbnail generation, text overlays, and visual assets
+ */
+export interface VisualStyle {
+    /** Overall aesthetic theme */
+    aesthetic: 'bold' | 'minimal' | 'aesthetic' | 'meme' | 'professional';
+    /** Text overlay styling */
+    textStyles: {
+        fontWeight: 'bold' | 'regular' | 'light';
+        fontSize: 'large' | 'medium' | 'small';
+        animation: 'pop' | 'fade' | 'slide' | 'none';
+    };
+    /** Color palette */
+    colors: {
+        primary: string;
+        accent: string;
+        text: string;
+        background?: string;
+    };
+    /** Thumbnail-specific guidance */
+    thumbnailGuidance: string;
+}
+
+/**
+ * Platform-specific audio/sound recommendations
+ * Used for music selection, voiceover style, and sound effects
+ */
+export interface AudioStyle {
+    /** Preferred audio type for the platform */
+    preferredType: 'viral_sound' | 'original' | 'voice_focused' | 'music_heavy';
+    /** Voice-over style guidance */
+    voiceStyle: 'energetic' | 'calm' | 'dramatic' | 'conversational';
+    /** Background music intensity */
+    musicIntensity: 'high' | 'medium' | 'low' | 'none';
+    /** Platform-specific audio guidance */
+    guidance: string;
+}
+
+/**
+ * Platform Algorithm Expert Interface
+ * 
+ * Defines the contract for platform-specific intelligence.
+ * This interface is implemented by all platform agents and provides
+ * reusable algorithm knowledge across all output capabilities
+ * (script, visual, audio, etc.)
+ */
+export interface PlatformAlgorithmExpert {
+    /** Target platform */
+    readonly platform: Platform;
+
+    /** Get algorithm focus configuration */
+    getAlgorithmFocus(): PlatformAlgorithmFocus;
+
+    /** Get optimal duration range */
+    getOptimalDuration(): { min: number; max: number; ideal: number };
+
+    /** Get platform display label */
+    getPlatformLabel(): string;
+
+    /** Get visual style guide for the platform */
+    getVisualStyle(): VisualStyle;
+
+    /** Get audio recommendations for the platform */
+    getAudioStyle(): AudioStyle;
+}
+
+/**
  * Algorithm focus configurations for each platform
  */
 export const PLATFORM_ALGORITHM_FOCUS: Record<Platform, PlatformAlgorithmFocus> = {
     tiktok: {
         primaryMetrics: ['watch_time', 'completion_rate', 'shares', 'comments'],
-        optimalDuration: { min: 15, max: 60, ideal: 21 },
+        optimalDuration: { min: 15, max: 30, ideal: 21 },
         hookTiming: {
             criticalSeconds: 1,
             description: 'Stop the scroll in first 1 second',
@@ -157,6 +224,8 @@ export interface PlatformScript {
         category: ContentCategory;
         agentVersion: string;
     };
+    /** Optional warnings about script generation (e.g., truncation, incomplete sections) */
+    warnings?: string[];
 }
 
 /**
