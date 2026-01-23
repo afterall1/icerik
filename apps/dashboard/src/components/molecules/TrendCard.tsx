@@ -1,12 +1,13 @@
 /**
  * TrendCard Component
  * 
- * Displays a trend item with engagement metrics and script generation button.
+ * Displays a trend item with engagement metrics, NES tooltip, and script generation button.
  * 
  * @module components/molecules/TrendCard
  */
 
 import { Card, Badge } from '../atoms';
+import { NesTooltip } from './NesTooltip';
 import { ArrowUp, MessageCircle, Clock, Flame, Sparkles } from 'lucide-react';
 
 interface TrendCardProps {
@@ -19,6 +20,8 @@ interface TrendCardProps {
     numComments: number;
     upvoteRatio: number;
     ageHours: number;
+    engagementVelocity: number;
+    controversyFactor: number;
     permalink: string;
     onGenerateScript?: () => void;
 }
@@ -58,16 +61,29 @@ export function TrendCard({
     numComments,
     upvoteRatio,
     ageHours,
+    engagementVelocity,
+    controversyFactor,
     permalink,
     onGenerateScript,
 }: TrendCardProps) {
     return (
         <Card padding="md" className="group">
             <div className="flex items-start justify-between gap-4 mb-3">
-                <Badge variant={getNesVariant(nes)} size="md">
-                    <Flame className="w-3.5 h-3.5 mr-1" />
-                    NES: {Math.round(nes)}
-                </Badge>
+                <NesTooltip
+                    nes={nes}
+                    score={score}
+                    numComments={numComments}
+                    upvoteRatio={upvoteRatio}
+                    ageHours={ageHours}
+                    engagementVelocity={engagementVelocity}
+                    controversyFactor={controversyFactor}
+                    subreddit={subreddit}
+                >
+                    <Badge variant={getNesVariant(nes)} size="md">
+                        <Flame className="w-3.5 h-3.5 mr-1" />
+                        NES: {Math.round(nes)}
+                    </Badge>
+                </NesTooltip>
                 <span className="text-xs text-slate-500">r/{subreddit}</span>
             </div>
 
@@ -116,4 +132,3 @@ export function TrendCard({
         </Card>
     );
 }
-

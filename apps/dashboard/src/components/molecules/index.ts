@@ -5,3 +5,4 @@ export { TrendCard } from './TrendCard';
 export { ScriptPreview } from './ScriptPreview';
 export { CategoryTabs } from './CategoryTabs';
 export { SearchBar } from './SearchBar';
+export { NesTooltip } from './NesTooltip';

@@ -74,6 +74,8 @@ export function TrendResults({ trends, isLoading = false }: TrendResultsProps) {
                         numComments={trend.numComments}
                         upvoteRatio={trend.upvoteRatio}
                         ageHours={trend.ageHours}
+                        engagementVelocity={trend.engagementVelocity}
+                        controversyFactor={trend.controversyFactor}
                         permalink={trend.permalink}
                         onGenerateScript={() => handleOpenScriptModal(trend)}
                     />
