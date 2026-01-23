@@ -17,7 +17,7 @@ const logger = createChildLogger('gemini');
  */
 const GEMINI_CONFIG = {
     BASE_URL: 'https://generativelanguage.googleapis.com/v1beta',
-    MODEL: 'gemini-1.5-flash',
+    MODEL: 'gemini-2.0-flash',
     MAX_RETRIES: 3,
     RETRY_DELAY_MS: 1000,
     TIMEOUT_MS: 30000,
