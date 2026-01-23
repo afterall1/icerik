@@ -6,6 +6,30 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.2.0] - 2026-01-23
+
+### 🤖 Gemini 3 Flash Preview Entegrasyonu
+
+AI script generation artık Gemini 3 Flash Preview modeli kullanıyor.
+
+### Changed
+- **Model Upgrade**: `gemini-2.0-flash` → `gemini-3-flash-preview`
+  - 1M input tokens, 65K output tokens
+  - Thinking ve structured outputs desteği
+- **ENV Loading Fix**: `--env-file=../../.env` flag eklendi
+  - Node.js 20+ gereksinimi
+
+### Fixed
+- `.env` dosyası artık doğru yükleniyor (dotenv yerine native Node.js flag)
+- Gemini API 404 hatası düzeltildi (model versiyonu güncellendi)
+
+### Verified
+- End-to-end script generation test edildi
+- Response time: ~15 saniye
+- Output quality: Hook/Body/CTA yapılandırılmış
+
+---
+
 ## [1.1.0] - 2026-01-22
 
 ### 🎨 ScriptGenerator UI & React Query Migration
