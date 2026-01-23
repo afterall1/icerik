@@ -75,6 +75,16 @@ export function createApiRouter(): Hono {
                 sortBy: (c.req.query('sortBy') || 'nes') as TrendQuery['sortBy'],
             };
 
+            // Handle both category ID and label (e.g., both 'technology' and 'Teknoloji')
+            if (query.category) {
+                const labelToId: Record<string, ContentCategory> = {};
+                for (const [id, label] of Object.entries(CATEGORY_LABELS)) {
+                    labelToId[label] = id as ContentCategory;
+                    labelToId[id] = id as ContentCategory; // Also map ID to itself
+                }
+                query.category = labelToId[query.category] || query.category;
+            }
+
             const sortType = (c.req.query('sortType') || 'hot') as 'hot' | 'rising' | 'top' | 'new';
 
             // Check cache first (unless bypass requested)

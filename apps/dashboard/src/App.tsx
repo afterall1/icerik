@@ -1,7 +1,7 @@
-import { TrendExplorer } from './pages/TrendExplorer';
+import { UnifiedDashboard } from './pages/UnifiedDashboard';
 
 function App() {
-  return <TrendExplorer />;
+  return <UnifiedDashboard />;
 }
 
 export default App;
