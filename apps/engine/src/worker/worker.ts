@@ -148,15 +148,27 @@ export class BackgroundWorker {
                 trendsByCategory.get(category)!.push(trend);
             }
 
-            // Cache trends for each category
+            // Cache trends for each category with multiple sort variants
+            // This enables instant response for different sort options in dashboard
+            const sortVariants: Array<'nes' | 'score' | 'comments'> = ['nes', 'score', 'comments'];
+
             for (const [category, categoryTrends] of trendsByCategory) {
-                const query = {
-                    category: category as SubredditConfig['category'],
-                    timeRange: 'day' as const,
-                    limit: 50,
-                    sortBy: 'nes' as const,
-                };
-                cache.setTrends(query, categoryTrends);
+                for (const sortBy of sortVariants) {
+                    // Sort trends according to the variant
+                    const sortedTrends = [...categoryTrends].sort((a, b) => {
+                        if (sortBy === 'nes') return b.nes - a.nes;
+                        if (sortBy === 'score') return b.score - a.score;
+                        return b.numComments - a.numComments;
+                    });
+
+                    const query = {
+                        category: category as SubredditConfig['category'],
+                        timeRange: 'day' as const,
+                        limit: 50,
+                        sortBy,
+                    };
+                    cache.setTrends(query, sortedTrends);
+                }
             }
 
             // Cache all trends without category filter
