@@ -6,6 +6,41 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.3.0] - 2026-01-23
+
+### 🎯 Unified Dashboard & NES Educational UX
+
+TrendExplorer 3-step wizard yerine Unified Single-Page Dashboard, NES tooltip eğitici içerikle.
+
+### Added
+- **UnifiedDashboard.tsx** (~250 lines)
+  - CategoryTabs: Horizontal scrollable category tabs
+  - FilterSidebar: Collapsible filter sections
+  - SearchBar: Debounced global search
+  - Stats bar: Trend count, average NES, hot trends
+
+- **NesTooltip.tsx** (~450 lines) - Educational
+  - Expandable accordion sections
+  - Hız Faktörü: Formula + contextual explanation
+  - Tartışma Faktörü: Bonus/penalty thresholds
+  - Subreddit Baseline: Per-subreddit values with subscriber counts
+  - Final calculation breakdown
+
+- **Category Filtering Fix**
+  - Backend label-to-ID mapping (accepts both "Teknoloji" and "technology")
+
+### Changed
+- App.tsx: TrendExplorer → UnifiedDashboard
+- TrendCard.tsx: Wrapped NES badge with NesTooltip
+- TrendResults.tsx: Passes engagementVelocity, controversyFactor props
+
+### Technical
+- 5 new files added
+- 4 files modified
+- ~1000 lines of new code
+
+---
+
 ## [1.2.0] - 2026-01-23
 
 ### 🤖 Gemini 3 Flash Preview Entegrasyonu
