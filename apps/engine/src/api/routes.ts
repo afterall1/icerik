@@ -14,6 +14,29 @@ import type { TrendQuery, ContentCategory, ApiResponse, TrendSummary, TrendData,
 import type { VideoFormat } from '../ai/scriptGenerator.js';
 import { createChildLogger } from '../utils/logger.js';
 import { createObservatoryRouter } from './observatory.js';
+import { getEnv } from '../utils/env.js';
+import { getImageSearchService, PexelsError } from '../images/index.js';
+
+// Security imports
+import {
+    createSecurityMiddleware,
+    createRateLimiter
+} from './securityMiddleware.js';
+import {
+    validateRequest,
+    trendQuerySchema,
+    generateScriptBodySchema,
+    generateScriptsBodySchema,
+    cacheInvalidateBodySchema,
+    classifyTrendBodySchema,
+    scoreScriptBodySchema,
+    iterateScriptBodySchema,
+    generateVariantsBodySchema,
+    getValidatedData,
+    type TrendQueryInput,
+    type GenerateScriptInput,
+} from './inputValidator.js';
+import { getSecurityStats } from '../utils/securityLogger.js';
 
 const logger = createChildLogger('api');
 
@@ -28,15 +51,62 @@ interface ResponseMeta {
 
 /**
  * Creates the main API router with all endpoints
+ * Security-hardened with rate limiting, input validation, and security headers
  * @returns Configured Hono router
  */
 export function createApiRouter(): Hono {
     const api = new Hono();
     const cache = getCacheService();
+    const env = getEnv();
+    const isProduction = env.NODE_ENV === 'production';
 
-    // Global middleware
-    api.use('*', cors());
+    // ============================================
+    // SECURITY MIDDLEWARE STACK
+    // ============================================
+
+    const security = createSecurityMiddleware({
+        enableHsts: isProduction,
+        generalRateLimit: { maxRequests: 100, windowMs: 60000 },
+        aiRateLimit: { maxRequests: 20, windowMs: 60000 },
+        maxBodySize: 102400, // 100KB
+    });
+
+    // 1. Security headers (first, always applied)
+    api.use('*', security.headers());
+
+    // 2. Error handler (catches and sanitizes errors)
+    api.use('*', security.errorHandler());
+
+    // 3. Body size limit
+    api.use('*', security.bodyLimit());
+
+    // 4. CORS - tightened configuration
+    const allowedOrigins = isProduction
+        ? (env.CORS_ORIGINS?.split(',').map(o => o.trim()) || ['https://localhost'])
+        : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
+
+    api.use('*', cors({
+        origin: allowedOrigins,
+        allowMethods: ['GET', 'POST', 'OPTIONS'],
+        allowHeaders: ['Content-Type', 'Authorization'],
+        maxAge: 86400,
+        credentials: false,
+    }));
+
+    // 5. Request logger
     api.use('*', honoLogger());
+
+    // 6. Rate limiting - general endpoints
+    api.use('/trends*', security.generalLimiter());
+    api.use('/categories*', security.generalLimiter());
+    api.use('/subreddits*', security.generalLimiter());
+    api.use('/status*', security.generalLimiter());
+
+    // 7. Rate limiting - AI endpoints (stricter)
+    api.use('/generate-script*', security.aiLimiter());
+    api.use('/scripts/*', security.aiLimiter());
+    api.use('/ai/*', security.aiLimiter());
+    api.use('/images/*', security.generalLimiter());
 
     // Mount Observatory router
     const observatoryRouter = createObservatoryRouter();
@@ -1112,6 +1182,215 @@ export function createApiRouter(): Hono {
                 timestamp: new Date().toISOString(),
             }, 500);
         }
+    });
+
+    // ============================================
+    // IMAGE DISCOVERY ENDPOINTS
+    // ============================================
+
+    /**
+     * GET /api/images/search
+     * Search images by query with optional validation
+     */
+    api.get('/images/search', async (c) => {
+        try {
+            const imageService = getImageSearchService();
+
+            if (!imageService.isConfigured()) {
+                return c.json({
+                    success: false,
+                    error: 'Image search not configured. Please set PEXELS_API_KEY.',
+                    timestamp: new Date().toISOString(),
+                }, 503);
+            }
+
+            const query = c.req.query('query');
+            const count = parseInt(c.req.query('count') || '6', 10);
+            const validate = c.req.query('validate') !== 'false';
+
+            if (!query) {
+                return c.json({
+                    success: false,
+                    error: 'Query parameter is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const result = await imageService.searchByQuery(query, {
+                count: Math.min(count, 12),
+                validateImages: validate,
+            });
+
+            return c.json({
+                success: true,
+                data: result,
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Image search failed');
+
+            if (error instanceof PexelsError) {
+                const statusCode = error.statusCode === 429 ? 429 : 500;
+                return c.json({
+                    success: false,
+                    error: error.message,
+                    timestamp: new Date().toISOString(),
+                }, statusCode as 429 | 500);
+            }
+
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * POST /api/images/search-for-content
+     * Search images based on trend/script content with keyword extraction
+     */
+    api.post('/images/search-for-content', async (c) => {
+        try {
+            const imageService = getImageSearchService();
+
+            if (!imageService.isConfigured()) {
+                return c.json({
+                    success: false,
+                    error: 'Image search not configured. Please set PEXELS_API_KEY.',
+                    timestamp: new Date().toISOString(),
+                }, 503);
+            }
+
+            const body = await c.req.json<{
+                title: string;
+                category?: string;
+                hookContent?: string;
+                count?: number;
+                validate?: boolean;
+            }>();
+
+            if (!body.title) {
+                return c.json({
+                    success: false,
+                    error: 'Title is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const result = await imageService.searchForContent(
+                {
+                    title: body.title,
+                    category: body.category,
+                    hookContent: body.hookContent,
+                },
+                {
+                    count: Math.min(body.count || 6, 12),
+                    validateImages: body.validate !== false,
+                }
+            );
+
+            return c.json({
+                success: true,
+                data: result,
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Content-based image search failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * POST /api/images/validate
+     * Validate a single image for text/overlay content
+     */
+    api.post('/images/validate', async (c) => {
+        try {
+            const imageService = getImageSearchService();
+
+            const body = await c.req.json<{
+                imageUrl: string;
+            }>();
+
+            if (!body.imageUrl) {
+                return c.json({
+                    success: false,
+                    error: 'imageUrl is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            // Basic URL validation
+            try {
+                new URL(body.imageUrl);
+            } catch {
+                return c.json({
+                    success: false,
+                    error: 'Invalid imageUrl format',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const result = await imageService.validateSingleImage(body.imageUrl);
+
+            return c.json({
+                success: true,
+                data: result,
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Image validation failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * GET /api/images/suggestions
+     * Get search suggestions for a category
+     */
+    api.get('/images/suggestions/:category', (c) => {
+        const imageService = getImageSearchService();
+        const category = c.req.param('category');
+
+        const suggestions = imageService.getSuggestions(category);
+
+        return c.json({
+            success: true,
+            data: {
+                category,
+                suggestions,
+            },
+            timestamp: new Date().toISOString(),
+        });
+    });
+
+    /**
+     * GET /api/images/status
+     * Get image service status and cache stats
+     */
+    api.get('/images/status', (c) => {
+        const imageService = getImageSearchService();
+
+        return c.json({
+            success: true,
+            data: {
+                configured: imageService.isConfigured(),
+                cache: imageService.getCacheStats(),
+            },
+            timestamp: new Date().toISOString(),
+        });
     });
 
     return api;

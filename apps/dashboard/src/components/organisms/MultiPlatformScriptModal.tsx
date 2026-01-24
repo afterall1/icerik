@@ -10,10 +10,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useMultiPlatformScripts, useRetryFailedPlatforms, useBatchScoreScripts } from '../../lib/hooks';
 import { Button, Card } from '../atoms';
-import { PlatformScriptCard } from '../molecules';
+import { PlatformScriptCard, ImageSuggestionsPanel, type ValidatedImage } from '../molecules';
 import type { TrendData, Platform, MultiPlatformOptions } from '../../lib/api';
 import { ALL_PLATFORMS, PLATFORM_LABELS } from '../../lib/api';
-import { X, Sparkles, Loader2, Zap, RotateCcw, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
+import { X, Sparkles, Loader2, Zap, RotateCcw, CheckCircle, XCircle, AlertTriangle, Info, Image as ImageIcon } from 'lucide-react';
 
 interface MultiPlatformScriptModalProps {
     /** Trend data to generate scripts from */
@@ -126,6 +126,8 @@ const DEFAULT_OPTIONS: MultiPlatformOptions = {
 export function MultiPlatformScriptModal({ trend, isOpen, onClose }: MultiPlatformScriptModalProps) {
     const [options, setOptions] = useState<MultiPlatformOptions>(DEFAULT_OPTIONS);
     const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(new Set(ALL_PLATFORMS));
+    const [activeTab, setActiveTab] = useState<'scripts' | 'images'>('scripts');
+    const [selectedImage, setSelectedImage] = useState<ValidatedImage | null>(null);
 
     const {
         mutate: generateScripts,
@@ -154,6 +156,8 @@ export function MultiPlatformScriptModal({ trend, isOpen, onClose }: MultiPlatfo
             reset();
             resetScores();
             setSelectedPlatforms(new Set(ALL_PLATFORMS));
+            setActiveTab('scripts');
+            setSelectedImage(null);
             // Set smart default duration based on all platforms
             const smartDuration = getSmartDefaultDuration([...ALL_PLATFORMS]);
             setOptions(prev => ({ ...prev, durationSeconds: smartDuration }));
@@ -443,36 +447,135 @@ export function MultiPlatformScriptModal({ trend, isOpen, onClose }: MultiPlatfo
                     </div>
                 )}
 
+                {/* Tab Navigation - Show only after scripts generated */}
+                {result && result.metadata.successCount > 0 && (
+                    <div className="px-4 pt-3 border-b border-slate-800 bg-slate-900">
+                        <div className="flex gap-1">
+                            <button
+                                onClick={() => setActiveTab('scripts')}
+                                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'scripts'
+                                    ? 'bg-slate-800 text-slate-100 border-b-2 border-indigo-500'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                            >
+                                <Sparkles className="w-4 h-4 inline-block mr-2" />
+                                Scriptler ({result.metadata.successCount})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('images')}
+                                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'images'
+                                    ? 'bg-slate-800 text-slate-100 border-b-2 border-indigo-500'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                            >
+                                <ImageIcon className="w-4 h-4 inline-block mr-2" />
+                                Görseller
+                                {selectedImage && (
+                                    <span className="ml-2 w-2 h-2 bg-green-500 rounded-full inline-block" />
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Content - Side by Side Cards */}
                 <div className="flex-1 overflow-y-auto p-4">
                     {result ? (
                         <>
-                            {/* Recommendation */}
-                            {result.summary.recommendation && (
-                                <div className="mb-4 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg">
-                                    <p className="text-sm text-slate-300">{result.summary.recommendation}</p>
-                                </div>
+                            {/* Scripts Tab Content */}
+                            {activeTab === 'scripts' && (
+                                <>
+                                    {/* Recommendation */}
+                                    {result.summary.recommendation && (
+                                        <div className="mb-4 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg">
+                                            <p className="text-sm text-slate-300">{result.summary.recommendation}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Platform Cards Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {ALL_PLATFORMS.filter((p) => selectedPlatforms.has(p)).map((platform) => {
+                                            const platformScore = scoreResults?.get(platform);
+                                            return (
+                                                <PlatformScriptCard
+                                                    key={platform}
+                                                    platform={platform}
+                                                    result={result.results[platform]}
+                                                    isLoading={false}
+                                                    onRetry={handleRetry}
+                                                    algorithmScore={platformScore?.algorithmScore}
+                                                    viralLabel={platformScore?.viralPotential}
+                                                    isScoreLoading={isScoring}
+                                                    showIterationPanel={true}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                </>
                             )}
 
-                            {/* Platform Cards Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {ALL_PLATFORMS.filter((p) => selectedPlatforms.has(p)).map((platform) => {
-                                    const platformScore = scoreResults?.get(platform);
-                                    return (
-                                        <PlatformScriptCard
-                                            key={platform}
-                                            platform={platform}
-                                            result={result.results[platform]}
-                                            isLoading={false}
-                                            onRetry={handleRetry}
-                                            algorithmScore={platformScore?.algorithmScore}
-                                            viralLabel={platformScore?.viralPotential}
-                                            isScoreLoading={isScoring}
-                                            showIterationPanel={true}
-                                        />
-                                    );
-                                })}
-                            </div>
+                            {/* Images Tab Content */}
+                            {activeTab === 'images' && (
+                                <div className="space-y-4">
+                                    {/* Selected Image Preview */}
+                                    {selectedImage && (
+                                        <div className="p-4 bg-slate-800/50 border border-green-700/50 rounded-lg">
+                                            <div className="flex items-start gap-4">
+                                                <img
+                                                    src={selectedImage.previewUrl}
+                                                    alt={selectedImage.alt}
+                                                    className="w-32 h-20 object-cover rounded-lg"
+                                                />
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <CheckCircle className="w-4 h-4 text-green-500" />
+                                                        <span className="text-sm font-medium text-green-400">Seçilen Görsel</span>
+                                                    </div>
+                                                    <p className="text-xs text-slate-400 mb-2">📷 {selectedImage.photographer}</p>
+                                                    <div className="flex gap-2">
+                                                        <a
+                                                            href={selectedImage.fullUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+                                                        >
+                                                            Full Size Aç
+                                                        </a>
+                                                        <button
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(selectedImage.fullUrl);
+                                                            }}
+                                                            className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition-colors"
+                                                        >
+                                                            URL Kopyala
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setSelectedImage(null)}
+                                                            className="px-2 py-1 text-xs bg-red-900/50 hover:bg-red-800/50 text-red-400 rounded transition-colors"
+                                                        >
+                                                            Kaldır
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Image Suggestions Panel */}
+                                    <ImageSuggestionsPanel
+                                        title={trend.title}
+                                        category={trend.category}
+                                        hookContent={
+                                            Object.values(result.results)
+                                                .find((r): r is Extract<typeof r, { success: true }> => r?.success === true)
+                                                ?.script.sections.hook?.content
+                                        }
+                                        onImageSelect={setSelectedImage}
+                                        imageCount={6}
+                                        showValidation={true}
+                                    />
+                                </div>
+                            )}
                         </>
                     ) : isPending ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

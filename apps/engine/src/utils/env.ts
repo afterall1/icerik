@@ -8,6 +8,11 @@ const envSchema = z.object({
     POLL_INTERVAL_MS: z.coerce.number().default(300000),
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
     GEMINI_API_KEY: z.string().optional(),
+    // Security-related env vars
+    CORS_ORIGINS: z.string().optional(), // Comma-separated list of allowed origins
+    API_SECRET_KEY: z.string().min(32).optional(), // Optional API key for auth
+    // Image Discovery
+    PEXELS_API_KEY: z.string().optional(), // Pexels API key for image search
 });
 
 export type Env = z.infer<typeof envSchema>;

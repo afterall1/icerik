@@ -15,6 +15,5 @@ export { FavoritesPanel } from './FavoritesPanel';
 export { HistoryPanel } from './HistoryPanel';
 export { RatingPanel } from './RatingPanel';
 export { AnalyticsPanel } from './AnalyticsPanel';
-
-
-
+export { ImageCard, type ValidatedImage } from './ImageCard';
+export { ImageSuggestionsPanel } from './ImageSuggestionsPanel';
