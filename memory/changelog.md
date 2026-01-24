@@ -6,6 +6,50 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.20.0] - 2026-01-25
+
+### 🖼️ Visual Selection System (Phase 23)
+
+Kullanıcıların her script bölümü için 1-2 görsel seçip kaydetmesini sağlayan sistem.
+
+### Added
+- **selectedVisualsTypes.ts** (`apps/dashboard/src/lib/selectedVisualsTypes.ts`)
+  - Types for visual selection system
+  - Utility functions (generateScriptId, createEmptySelections)
+  - MAX_VISUALS_PER_SECTION = 2 constant
+
+- **useVisualSelections.ts** (`apps/dashboard/src/lib/useVisualSelections.ts`)
+  - IndexedDB-based persistence hook
+  - Add/remove selection with order tracking
+  - Section-full detection
+  - Consistent with useScriptHistory pattern
+
+- **SelectedVisualsPreview.tsx** (`apps/dashboard/src/components/molecules/SelectedVisualsPreview.tsx`)
+  - Section-specific thumbnail previews
+  - Order badges (1, 2)
+  - Remove button on hover
+  - "Add more" dashed placeholder
+
+### Changed
+- **VisualCard.tsx** - Added selection overlay (green ring), order badge, select button
+- **VisualDiscoveryPanel.tsx** - Selection state props, count badge in header
+- **PlatformScriptCard.tsx** - Hook integration, SelectedVisualsPreview per section
+
+### Features
+| Feature | Detail |
+|---------|--------|
+| Selection Limit | Max 2 per section (Hook/Body/CTA) |
+| Persistence | IndexedDB (survives refresh) |
+| Visual Feedback | Green ring + order badge on selected |
+| Section Preview | Thumbnails below each section |
+
+### Technical
+- 3 new frontend files
+- 3 files modified
+- TypeScript + Vite build verified
+
+---
+
 ## [1.19.0] - 2026-01-24
 
 ### 🧠 Visual Search Specialist AI Agent (Phase 22)

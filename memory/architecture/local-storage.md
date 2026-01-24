@@ -1,7 +1,7 @@
 # Local Storage Architecture
 
-> **Updated**: 24 Ocak 2026  
-> **Phase**: 16-18
+> **Updated**: 25 Ocak 2026  
+> **Phase**: 16-18, 23
 
 ---
 
@@ -140,6 +140,54 @@ Export formats:
 
 ---
 
+### 6. useVisualSelections (IndexedDB) - Phase 23 NEW
+
+**Database**: `icerik_visual_selections`  
+**Store**: `selections`  
+**Location**: `apps/dashboard/src/lib/useVisualSelections.ts`  
+**Max Items**: 2 per section
+
+```typescript
+interface SelectedVisual {
+    id: string;
+    imageId: string;
+    scriptId: string;
+    sectionType: 'hook' | 'body' | 'cta';
+    order: number; // 1 or 2
+    image: ValidatedImage;
+    addedAt: string;
+}
+
+interface ScriptVisualSelections {
+    scriptId: string;
+    platform: 'tiktok' | 'reels' | 'shorts';
+    trendId: string;
+    scriptTitle: string;
+    selections: {
+        hook: SelectedVisual[];
+        body: SelectedVisual[];
+        cta: SelectedVisual[];
+    };
+    createdAt: string;
+    updatedAt: string;
+}
+```
+
+**Indexes**:
+- `scriptId` - primary key
+- `platform` - grouping
+- `updatedAt` - chronological
+
+**API**:
+- `addSelection(sectionType, image): Promise<boolean>`
+- `removeSelection(sectionType, imageId): Promise<void>`
+- `isSelected(sectionType, imageId): boolean`
+- `getSelectionOrder(sectionType, imageId): number`
+- `isSectionFull(sectionType): boolean`
+- `clearAllSelections(): Promise<void>`
+
+---
+
 ## UI Components
 
 | Component | Hook Used | Location |
@@ -149,6 +197,7 @@ Export formats:
 | HistoryPanel | useScriptHistory | molecules |
 | RatingPanel | useScriptRating | molecules |
 | AnalyticsPanel | useAnalytics + useScriptRating | molecules |
+| SelectedVisualsPreview | useVisualSelections | molecules |
 
 ---
 

@@ -1,47 +1,41 @@
 # Active Context - İçerik Trend Engine
 
-> **Son Güncelleme**: 24 Ocak 2026, 23:42  
-> **Aktif Faz**: Phase 22 - Visual Search Specialist AI Agent ✅ COMPLETE  
-> **Current Version**: v1.19.0
+> **Son Güncelleme**: 25 Ocak 2026, 00:25  
+> **Aktif Faz**: Phase 23 - Visual Selection System ✅ COMPLETE  
+> **Current Version**: v1.20.0
 
 ---
 
 ## 🎯 Current Status
 
-**TÜM PLANLANAN FAZLAR + BONUS FAZLAR TAMAMLANDI** (Phase 1-22)
+**TÜM PLANLANAN FAZLAR + BONUS FAZLAR TAMAMLANDI** (Phase 1-23)
 
-Toplam ~26,000+ satır kod implemente edildi.
+Toplam ~27,000+ satır kod implemente edildi.
 
 ---
 
-## ✅ Son Oturum Özeti (24 Ocak 2026, 23:42)
+## ✅ Son Oturum Özeti (25 Ocak 2026, 00:25)
 
-### Phase 22: Visual Search Specialist AI Agent ✅
+### Phase 23: Visual Selection System ✅
 
-**Backend (1 major new file)**:
-- `VisualSearchSpecialist.ts` - AI-powered search query generation (360+ lines)
-  - Gemini API integration with multi-step reasoning
-  - System prompt for semantic understanding
-  - Soyut→Somut visual mapping
-  - Fallback to KeywordExtractor
-
-**Modifications**:
-- `ImageSearchService.ts` - Added `useAI` option, specialist integration
-- `index.ts` - Added VisualSearchSpecialist export
-- `routes.ts` - Added orientation parameter to API
+**Backend (IndexedDB - no backend changes)**:
+- Client-side storage only (ADR-020: Local-First Analytics)
 
 **Frontend (3 new files)**:
-- `VisualDiscoveryPanel.tsx` - Slide-out panel for image search
-- `VisualCard.tsx` - Image card with validation badges
-- `useVisualSearch.ts` - API hook for image search
+- `selectedVisualsTypes.ts` - Types + utility functions (~100 lines)
+- `useVisualSelections.ts` - IndexedDB hook for persistence (~280 lines)
+- `SelectedVisualsPreview.tsx` - Section preview component (~135 lines)
 
 **Frontend Modifications**:
-- `PlatformScriptCard.tsx` - Added 🖼️ visual button to sections
+- `VisualCard.tsx` - Selection overlay, order badge, select button
+- `VisualDiscoveryPanel.tsx` - Selection state props, count badge in header
+- `PlatformScriptCard.tsx` - Hook integration, SelectedVisualsPreview per section
 
-**Image Improvements**:
-- Portrait orientation for Reels (9:16) format
-- AI-generated search queries instead of keyword extraction
-- Section-aware mood selection (Hook=dramatic, Body=professional, CTA=energetic)
+**Key Features**:
+- Max 2 visuals per section (Hook/Body/CTA)
+- Green ring + order badge on selected images
+- IndexedDB persistence across page reloads
+- Section-specific selection previews
 
 ---
 
@@ -49,20 +43,19 @@ Toplam ~26,000+ satır kod implemente edildi.
 
 | Metric | Value |
 |--------|-------|
-| Phases Completed | 1 (22) |
-| New Files (Backend) | 1 |
+| Phases Completed | 1 (23) |
 | New Files (Frontend) | 3 |
-| Modified Files | 6 |
-| Build Status | ✅ Passed |
+| Modified Files | 3 |
+| Build Status | ✅ Passed (Dashboard + Engine) |
 
 ---
 
 ## 🏗️ Architecture Highlights
 
-1. **VisualSearchSpecialist**: AI agent for semantic understanding
-2. **Visual Discovery Button**: 🖼️ button on each script section
-3. **Portrait Orientation**: Default for Reels content
-4. **Fallback Strategy**: AI fails → KeywordExtractor
+1. **useVisualSelections Hook**: IndexedDB-based persistence
+2. **SelectedVisualsPreview**: Thumbnail grid with remove functionality
+3. **Selection Limit**: Max 2 per section, enforced at hook level
+4. **Consistent Pattern**: Matches useScriptHistory IndexedDB pattern
 
 ---
 
@@ -74,15 +67,17 @@ Toplam ~26,000+ satır kod implemente edildi.
 4. **Platform API Integration** - TikTok/X direct posting
 5. **Video Search** - Pexels Video API integration
 6. **Visual Timeline** - Drag-drop visual sequencing
+7. **Export with Visuals** - PDF/video export with selected visuals
 
 ---
 
 ## 📁 Memory Files Updated (This Session)
 
 - [x] `memory/active_context.md` ✅
-- [ ] `memory/changelog.md` - v1.19.0
-- [ ] `memory/api/endpoints.md` - orientation param
-- [ ] `memory/architecture/ai-quality.md` - VisualSearchSpecialist
+- [x] `memory/changelog.md` - v1.20.0
+- [x] `memory/roadmap.md` - Phase 23
+- [x] `memory/_SYNC_CHECKLIST.md` ✅
+- [x] `memory/architecture/local-storage.md` - useVisualSelections
 
 ---
 
@@ -91,7 +86,7 @@ Toplam ~26,000+ satır kod implemente edildi.
 ```bash
 packages/shared  ✅
 apps/engine      ✅ (TypeScript verified)
-apps/dashboard   ✅ (TypeScript verified)
+apps/dashboard   ✅ (121.10 kB, 3.78s)
 ```
 
 ---

@@ -107,6 +107,23 @@
 - [x] ImageSuggestionsPanel.tsx (search + grid)
 - [x] MultiPlatformScriptModal "Görseller" tab
 
+### Phase 22: Visual Search Specialist AI Agent
+- [x] VisualSearchSpecialist.ts (AI-powered search query generation)
+- [x] Gemini API integration with multi-step reasoning
+- [x] Soyut→Somut visual mapping
+- [x] Section-aware mood selection (Hook/Body/CTA)
+- [x] Portrait orientation default (9:16)
+- [x] Fallback to KeywordExtractor
+
+### Phase 23: Visual Selection System
+- [x] selectedVisualsTypes.ts (types + utilities)
+- [x] useVisualSelections.ts (IndexedDB hook)
+- [x] SelectedVisualsPreview.tsx (section preview component)
+- [x] VisualCard.tsx selection overlay + order badge
+- [x] VisualDiscoveryPanel.tsx selection state props
+- [x] PlatformScriptCard.tsx integration
+- [x] Max 2 visuals per section limit
+
 ---
 
 ## 🟡 In Progress

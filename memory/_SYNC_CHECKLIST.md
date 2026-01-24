@@ -1,7 +1,7 @@
 # 🔄 End-of-Session Sync Checklist
 
 > **Proje**: İçerik Trend Engine  
-> **Son Sync**: 24 Ocak 2026, 23:42
+> **Son Sync**: 25 Ocak 2026, 00:25
 
 Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak doldurulmalıdır.
 
@@ -10,47 +10,47 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 ## 1. Kod Değişiklikleri → Dokümantasyon Güncellemeleri
 
 - [x] Store/State değişti mi? → Hayır
-- [x] Yeni API endpoint eklendi mi? → Hayır (orientation param eklendi)
+- [x] Yeni API endpoint eklendi mi? → Hayır
 - [x] Shared types değişti mi? → Hayır
-- [x] Yeni pattern/mimari eklendi mi? → VisualSearchSpecialist AI agent
-- [x] Feature logic değişti mi? → AI-powered search
+- [x] Yeni pattern/mimari eklendi mi? → useVisualSelections IndexedDB hook
+- [x] Feature logic değişti mi? → Visual selection system
 
 ## 2. Bütünlük Kontrolü
 
 - [x] API dokümantasyonu gerçek kodu yansıtıyor mu? ✅
-- [x] Kritik kararlar ADR olarak kaydedildi mi? → Hayır (standard pattern) ✅
+- [x] Kritik kararlar ADR olarak kaydedildi mi? → Hayır (follows ADR-020 pattern) ✅
 - [x] `active_context.md` YENİ bir asistan için yeterince detaylı mı? ✅
 
 ## 3. Doğrulama
 
 - [x] Test sonuçları kaydedildi mi? → TypeScript build passed ✅
-- [x] Changelog güncellendi mi? → v1.19.0 ✅
-- [x] Roadmap/active_context güncellendi mi? → Phase 22 ✅
+- [x] Changelog güncellendi mi? → v1.20.0 ✅
+- [x] Roadmap/active_context güncellendi mi? → Phase 23 ✅
 
 ---
 
-## 4. Bu Oturum Güncellemeleri (24 Ocak 2026, 23:42)
+## 4. Bu Oturum Güncellemeleri (25 Ocak 2026, 00:25)
 
 | Dosya | Güncelleme |
 |-------|------------|
-| `apps/engine/src/images/VisualSearchSpecialist.ts` | NEW - AI search agent (360+ lines) |
-| `apps/engine/src/images/ImageSearchService.ts` | useAI option + specialist integration |
-| `apps/engine/src/images/index.ts` | Added VisualSearchSpecialist export |
-| `apps/engine/src/api/routes.ts` | orientation parameter added |
-| `apps/dashboard/src/components/atoms/VisualCard.tsx` | NEW - Image card component |
-| `apps/dashboard/src/components/molecules/VisualDiscoveryPanel.tsx` | NEW - Slide-out panel |
-| `apps/dashboard/src/components/molecules/PlatformScriptCard.tsx` | Visual button + panel integration |
-| `apps/dashboard/src/lib/useVisualSearch.ts` | NEW - Visual search hook |
-| `memory/active_context.md` | Phase 22 complete |
-| `memory/changelog.md` | v1.19.0 added |
+| `apps/dashboard/src/lib/selectedVisualsTypes.ts` | NEW - Types + utilities (~100 lines) |
+| `apps/dashboard/src/lib/useVisualSelections.ts` | NEW - IndexedDB hook (~280 lines) |
+| `apps/dashboard/src/components/molecules/SelectedVisualsPreview.tsx` | NEW - Section preview (~135 lines) |
+| `apps/dashboard/src/components/atoms/VisualCard.tsx` | Selection overlay + order badge |
+| `apps/dashboard/src/components/molecules/VisualDiscoveryPanel.tsx` | Selection state props |
+| `apps/dashboard/src/components/molecules/PlatformScriptCard.tsx` | Hook integration + previews |
+| `memory/active_context.md` | Phase 23 complete |
+| `memory/changelog.md` | v1.20.0 added |
+| `memory/roadmap.md` | Phase 22 + 23 added |
+| `memory/architecture/local-storage.md` | useVisualSelections documented |
 
 ---
 
 ## 5. Önceki Oturum Özeti
 
 | Dosya | Güncelleme |
-|-------|-----------|
-| Image Discovery System | Phase 21 - 5 new files, 5 endpoints |
+|-------|-----------| 
+| Visual Search AI Agent | Phase 22 - VisualSearchSpecialist.ts |
 
 ---
 
@@ -60,9 +60,11 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 # Memory sync workflow
 # 1. active_context.md güncelle ✅
 # 2. changelog.md güncelle ✅
-# 3. Bu checklist'i doldur ✅
-# 4. git add memory/
-# 5. git commit -m "chore: memory sync - 2026-01-24 (Phase 22)"
+# 3. roadmap.md güncelle ✅
+# 4. local-storage.md güncelle ✅
+# 5. Bu checklist'i doldur ✅
+# 6. git add memory/
+# 7. git commit -m "chore: memory sync - 2026-01-25 (Phase 23)"
 ```
 
 ---
@@ -76,7 +78,8 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 | Architecture Docs | 100% | 100% |
 | Security Docs | 100% | 100% |
 | Image Discovery | 100% | 100% |
-| Visual Search AI | 0% | 100% |
+| Visual Search AI | 100% | 100% |
+| Visual Selection | 0% | 100% |
 | Overall | 98% | 100% |
 
 ---
@@ -129,3 +132,16 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 | Portrait Orientation | ✅ Active (9:16 default) |
 | Fallback | ✅ Active (KeywordExtractor) |
 | Section-aware Mood | ✅ Active (Hook/Body/CTA) |
+
+---
+
+## 🖼️ Visual Selection System Status (Phase 23 NEW)
+
+| Component | Status |
+|-----------|--------|
+| selectedVisualsTypes.ts | ✅ Active (types + utilities) |
+| useVisualSelections.ts | ✅ Active (IndexedDB hook) |
+| SelectedVisualsPreview.tsx | ✅ Active (section previews) |
+| VisualCard Selection UI | ✅ Active (overlay + badge) |
+| Max 2 Per Section | ✅ Enforced |
+| Persistence | ✅ IndexedDB (survives refresh) |
