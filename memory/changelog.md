@@ -6,6 +6,65 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.18.0] - 2026-01-24
+
+### 🖼️ Image Discovery System (Phase 21)
+
+Script içerikleri için otomatik görsel keşfi ve Gemini-powered metin tespiti.
+
+### Added
+- **PexelsClient.ts** (`apps/engine/src/images/PexelsClient.ts`)
+  - Pexels API wrapper with retry logic
+  - Photo search, curated, and random endpoints
+  - Rate limit handling and error recovery
+
+- **ImageValidator.ts** (`apps/engine/src/images/ImageValidator.ts`)
+  - Gemini 2.0 Flash Vision API integration
+  - Text/overlay detection in images
+  - Batch validation support
+
+- **KeywordExtractor.ts** (`apps/engine/src/images/KeywordExtractor.ts`)
+  - Keyword extraction from trend titles and content
+  - Category-based keyword enrichment
+  - English/Turkish stop word filtering
+
+- **ImageSearchService.ts** (`apps/engine/src/images/ImageSearchService.ts`)
+  - Orchestration layer for search + validation
+  - 15-minute in-memory caching
+  - Cache stats and cleanup
+
+- **ImageCard.tsx** (`apps/dashboard/src/components/molecules/ImageCard.tsx`)
+  - Validation badge (clean/warning)
+  - Download, copy URL, open in Pexels actions
+  - Hover effects and selection state
+
+- **ImageSuggestionsPanel.tsx** (`apps/dashboard/src/components/molecules/ImageSuggestionsPanel.tsx`)
+  - Grid display of suggested images
+  - Search query display and stats
+  - Refresh functionality
+
+### Changed
+- **MultiPlatformScriptModal.tsx** - Added "Görseller" tab with ImageSuggestionsPanel
+- **routes.ts** - Added 5 new image API endpoints
+- **env.ts** - Added `PEXELS_API_KEY` to schema
+
+### API Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/images/search` | GET | Search by query |
+| `/api/images/search-for-content` | POST | Content-based search |
+| `/api/images/validate` | POST | Validate single image |
+| `/api/images/suggestions/:category` | GET | Category suggestions |
+| `/api/images/status` | GET | Service status |
+
+### Technical
+- 5 new backend files
+- 2 new frontend files
+- 5 new API endpoints
+- TypeScript + Vite build verified
+
+---
+
 ## [1.17.0] - 2026-01-24
 
 ### 🛡️ Security Hardening (Phase 20)

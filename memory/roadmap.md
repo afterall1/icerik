@@ -97,6 +97,16 @@
 - [x] CORS configuration hardening
 - [x] Environment variables (CORS_ORIGINS, API_SECRET_KEY)
 
+### Phase 21: Image Discovery System
+- [x] PexelsClient.ts (Pexels API wrapper)
+- [x] ImageValidator.ts (Gemini Vision text detection)
+- [x] KeywordExtractor.ts (content-based keyword extraction)
+- [x] ImageSearchService.ts (orchestration + caching)
+- [x] 5 API endpoints (/api/images/*)
+- [x] ImageCard.tsx (validation badge, actions)
+- [x] ImageSuggestionsPanel.tsx (search + grid)
+- [x] MultiPlatformScriptModal "Görseller" tab
+
 ---
 
 ## 🟡 In Progress

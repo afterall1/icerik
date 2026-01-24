@@ -477,3 +477,105 @@ Roadmap ve faz durumları döner (auto-updated from roadmap.md).
     autoUpdated: boolean;
 }
 ```
+
+---
+
+## 8. Image Discovery Endpoints (Phase 21)
+
+### GET /api/images/search
+
+Query parametresi ile görsel arama.
+
+**Query Parameters:**
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `query` | string | - | Arama sorgusu (zorunlu) |
+| `count` | number | 6 | Sonuç sayısı (max 12) |
+| `validate` | boolean | true | Gemini ile metin kontrolü |
+
+**Response:**
+```typescript
+{
+    query: string;
+    images: ValidatedImage[];
+    totalFound: number;
+    validCount: number;
+    invalidCount: number;
+    cachedAt?: number;
+}
+```
+
+---
+
+### POST /api/images/search-for-content
+
+Trend/script içeriğine göre görsel arama.
+
+**Request Body:**
+```typescript
+{
+    title: string;       // Trend başlığı (zorunlu)
+    category?: string;   // Kategori
+    hookContent?: string; // Script hook'u
+    count?: number;      // Sonuç sayısı (default: 6)
+    validate?: boolean;  // Metin kontrolü (default: true)
+}
+```
+
+---
+
+### POST /api/images/validate
+
+Tek görselde metin kontrolü.
+
+**Request Body:**
+```typescript
+{
+    imageUrl: string;    // Görsel URL'i (zorunlu)
+}
+```
+
+**Response:**
+```typescript
+{
+    imageUrl: string;
+    isClean: boolean;
+    hasText: boolean;
+    hasOverlay: boolean;
+    confidenceScore: number;
+    detectedElements: string[];
+}
+```
+
+---
+
+### GET /api/images/suggestions/:category
+
+Kategori için arama önerileri.
+
+**Response:**
+```typescript
+{
+    category: string;
+    suggestions: string[];
+}
+```
+
+---
+
+### GET /api/images/status
+
+Image servis durumu.
+
+**Response:**
+```typescript
+{
+    configured: boolean;
+    cache: {
+        size: number;
+        hits: number;
+        misses: number;
+    };
+}
+```
+
