@@ -258,5 +258,58 @@ Circular dependency between `types.ts` and `platformTypes.ts` for variant/iterat
 
 ---
 
+## ADR-024: In-Memory Rate Limiting
+
+**Status**: ✅ Accepted  
+**Date**: 2026-01-24  
+**Phase**: 20
+
+### Context
+Rate limiting implementation seçimi: Redis vs In-Memory vs DB-backed.
+
+### Decision
+In-memory Map-based sliding window algorithm.
+
+### Rationale
+1. **Zero Dependencies**: Redis server gereksiz
+2. **Low Latency**: O(1) Map lookup
+3. **Sufficient for MVP**: Tek instance deployment
+4. **Automatic Cleanup**: Expired entry temizleme
+
+### Consequences
+- ✅ Hızlı implementation
+- ✅ 0ms latency overhead
+- ⚠️ Multi-instance deployment'ta paylaşılmaz
+- ⚠️ Server restart'ta sıfırlanır
+
+---
+
+## ADR-025: Zod-Based Request Validation
+
+**Status**: ✅ Accepted  
+**Date**: 2026-01-24  
+**Phase**: 20
+
+### Context
+Input validation approach: Manual checks vs Joi vs Zod vs Valibot.
+
+### Decision
+Zod ile schema-based validation middleware.
+
+### Rationale
+1. **TypeScript First**: Type inference otomatik
+2. **DRY Principle**: Schema bir kez tanımla, her yerde kullan
+3. **Already in Project**: `env.ts`'de zaten Zod kullanılıyor
+4. **Composable**: Nested schemas, refinements
+
+### Consequences
+- ✅ Type-safe validation
+- ✅ Consistent error format
+- ✅ Reusable schemas
+- ⚠️ Bundle size artışı (~12KB)
+
+---
+
 *New ADRs should be added chronologically with incrementing numbers.*
+
 

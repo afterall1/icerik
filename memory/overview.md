@@ -1,8 +1,8 @@
 # İçerik Trend Engine - Project Overview
 
-> **Version**: 1.16.0  
+> **Version**: 1.17.0  
 > **Last Updated**: 24 Ocak 2026  
-> **Status**: Phase 19.1 Complete (Observatory Auto-Update)
+> **Status**: Phase 20 Complete (Security Hardening)
 
 ---
 
@@ -25,6 +25,7 @@ Reddit tabanlı viral içerik tespit motoru. Instagram, TikTok ve YouTube Reels 
 | **Data Fetching** | React Query | @tanstack/react-query |
 | **AI** | Google Gemini | Content script generation |
 | **Logging** | Pino | Structured JSON logs |
+| **Security** | Custom Middleware | Rate limiting, CSP, validation |
 
 ---
 
@@ -35,18 +36,18 @@ icerik/
 ├── apps/
 │   ├── engine/          # Core backend (Hono API)
 │   │   └── src/
-│   │       ├── api/     # REST endpoints
+│   │       ├── api/     # REST endpoints + security
 │   │       ├── cache/   # SQLite caching layer
 │   │       ├── worker/  # Background polling
 │   │       ├── ai/      # Gemini integration
 │   │       ├── ingestion/   # Reddit data fetching
 │   │       ├── processing/  # NES algorithm
-│   │       └── utils/   # Logger, env
+│   │       └── utils/   # Logger, env, security
 │   └── dashboard/       # Web UI (React)
 │       └── src/
 │           ├── components/  # Atomic Design
 │           ├── pages/       # TrendExplorer
-│           ├── lib/         # API client, hooks
+│           ├── lib/         # API client, hooks, sanitize
 │           └── stores/      # Zustand
 └── packages/
     └── shared/          # Types, constants
@@ -121,3 +122,6 @@ cd apps/engine && npm test
 | `NODE_ENV` | No | development/production |
 | `GEMINI_API_KEY` | For AI | Gemini API key |
 | `LOG_LEVEL` | No | Logging level |
+| `CORS_ORIGINS` | No | Comma-separated allowed origins |
+| `API_SECRET_KEY` | No | 32+ char key for future auth |
+

@@ -88,6 +88,15 @@
 - [x] TrendTypeBadge, AlgorithmScoreCard components
 - [x] Auto-scoring after script generation
 
+### Phase 20: Security Hardening
+- [x] securityMiddleware.ts (rate limiting, headers, error handler)
+- [x] inputValidator.ts (Zod schemas for all endpoints)
+- [x] securityLogger.ts (security event tracking)
+- [x] sanitize.ts (frontend XSS prevention)
+- [x] CSP headers in index.html
+- [x] CORS configuration hardening
+- [x] Environment variables (CORS_ORIGINS, API_SECRET_KEY)
+
 ---
 
 ## 🟡 In Progress

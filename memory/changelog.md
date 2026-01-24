@@ -6,6 +6,58 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.17.0] - 2026-01-24
+
+### 🛡️ Security Hardening (Phase 20)
+
+360° güvenlik denetimi ve hardening. Rate limiting, input validation, CSP ve XSS koruması.
+
+### Added
+- **securityMiddleware.ts** (`apps/engine/src/api/securityMiddleware.ts`)
+  - `createRateLimiter()` - IP-based sliding window rate limiting
+  - `createSecurityHeaders()` - X-Frame-Options, X-XSS-Protection, etc.
+  - `createErrorHandler()` - Production error sanitization
+  - `createBodySizeLimit()` - 100KB request body limit
+
+- **inputValidator.ts** (`apps/engine/src/api/inputValidator.ts`)
+  - 8 Zod schemas for all API endpoints
+  - `validateRequest()` middleware factory
+  - `sanitizeString()`, `sanitizeUrl()` helpers
+
+- **securityLogger.ts** (`apps/engine/src/utils/securityLogger.ts`)
+  - Security event tracking (rate_limit, invalid_input, suspicious_request)
+  - Pattern detection (SQL injection, XSS, path traversal)
+  - `getSecurityStats()` for monitoring
+
+- **sanitize.ts** (`apps/dashboard/src/lib/sanitize.ts`)
+  - `escapeForDisplay()` - HTML entity encoding
+  - `sanitizeUrl()` - Protocol validation
+  - `stripHtml()` - Complete HTML stripping
+
+### Changed
+- **routes.ts** - Security middleware stack integration
+- **env.ts** - Added `CORS_ORIGINS`, `API_SECRET_KEY`
+- **index.html** - CSP meta tags, security headers
+- **package.json** (dashboard) - Build script fix (`tsc -b` removed)
+
+### Security Features
+| Feature | Detail |
+|---------|--------|
+| Rate Limiting | 100/min general, 20/min AI |
+| Input Validation | Zod schemas for all endpoints |
+| Security Headers | X-Frame-Options, XSS Protection |
+| CSP | Content Security Policy in HTML |
+| Error Sanitization | No stack traces in production |
+| Security Logging | Suspicious pattern detection |
+
+### Technical
+- 4 new files added
+- 4 files modified
+- TypeScript build verified
+- Full monorepo build passed
+
+---
+
 ## [1.16.0] - 2026-01-24
 
 ### 🔄 Observatory Auto-Update (Phase 19.1)

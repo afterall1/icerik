@@ -44,6 +44,7 @@ Hangi dosyaların güncellenmesi gerektiğini ve Documentation Health Score'u ko
 | AI knowledge/education | `memory/architecture/knowledge-system.md` |
 | AI quality modules | `memory/architecture/ai-quality.md` |
 | Browser storage hooks | `memory/architecture/local-storage.md` |
+| Security/Rate limiting | `memory/architecture/security.md` |
 
 #### 3.3 Project State
 
@@ -117,5 +118,7 @@ memory/architecture/
 ├── multi-agent.md       # TikTok/Reels/Shorts agents
 ├── knowledge-system.md  # Gemini education
 ├── ai-quality.md        # AIMetrics, Iterator, Variants
-└── local-storage.md     # Browser storage hooks
+├── local-storage.md     # Browser storage hooks
+└── security.md          # Rate limiting, validation, CSP
 ```
+

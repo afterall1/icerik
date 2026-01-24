@@ -58,7 +58,14 @@ view_file memory/architecture/ai-quality.md
 ```
 Multi-platform agent sistemi, Gemini education ve AI quality modülleri.
 
-#### 5.3 Frontend Storage
+#### 5.3 Security (Güvenlik çalışması için)
+// turbo
+```bash
+view_file memory/architecture/security.md
+```
+Rate limiting, input validation, CSP, XSS prevention.
+
+#### 5.4 Frontend Storage
 // turbo
 ```bash
 view_file memory/architecture/local-storage.md
@@ -75,6 +82,7 @@ Browser-native storage hooks (favorites, history, analytics).
 | **AI/Script Work** | + multi-agent + knowledge-system + ai-quality |
 | **Frontend Work** | + local-storage |
 | **Performance** | + caching + worker |
+| **Security Work** | + security |
 | **Full Context** | Tüm dosyalar |
 
 ---
@@ -112,3 +120,4 @@ Tüm adımları takip et (1-5 arası)
 | `knowledge-system.md` | Native Gemini education system | 13 |
 | `ai-quality.md` | AIMetrics, Iterator, Variants | 15 |
 | `local-storage.md` | Browser storage hooks | 16-18 |
+| `security.md` | Rate limiting, validation, CSP, XSS | 20 |
