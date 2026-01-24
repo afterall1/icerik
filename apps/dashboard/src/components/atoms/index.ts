@@ -16,3 +16,6 @@ export {
     SkeletonButton,
     SkeletonHeader,
 } from './Skeleton';
+export { TrendTypeBadge, TrendTypeBadgeSkeleton } from './TrendTypeBadge';
+export { FavoriteButton } from './FavoriteButton';
+

@@ -1,4 +1,4 @@
-import type { ContentCategory, SubredditConfig } from './types.js';
+import type { ContentCategory, SubredditConfig, TrendType, ContentFormat } from './types.js';
 
 /**
  * Subreddit to Category Mapping
@@ -130,4 +130,101 @@ export const CATEGORY_VIDEO_FORMATS: Record<ContentCategory, string[]> = {
     sports: ['Highlights', 'Commentary', 'Analysis'],
     science: ['Explainer', 'News', 'Deep Dive'],
     other: ['Commentary', 'Story-time'],
+};
+
+/**
+ * Trend type to recommended content format mapping
+ */
+export const TREND_TYPE_FORMATS: Record<TrendType, {
+    primaryFormat: ContentFormat;
+    alternativeFormats: ContentFormat[];
+    hookStyle: string;
+    structureGuidance: string;
+}> = {
+    controversy: {
+        primaryFormat: 'hot_take',
+        alternativeFormats: ['reaction'],
+        hookStyle: 'Unpopular opinion / Bold statement',
+        structureGuidance: 'State controversial take → Defense → Challenge audience',
+    },
+    breaking_news: {
+        primaryFormat: 'urgency',
+        alternativeFormats: ['hot_take'],
+        hookStyle: 'THIS JUST HAPPENED / Breaking',
+        structureGuidance: 'Urgency hook → Key facts only → What it means',
+    },
+    tutorial: {
+        primaryFormat: 'step_by_step',
+        alternativeFormats: ['comparison'],
+        hookStyle: 'X things you need to know / How to',
+        structureGuidance: 'Promise value → Numbered steps → Quick win CTA',
+    },
+    story: {
+        primaryFormat: 'narrative_arc',
+        alternativeFormats: ['reaction'],
+        hookStyle: 'Story time / You wont believe',
+        structureGuidance: 'Mystery hook → Build tension → Reveal/Resolution',
+    },
+    review: {
+        primaryFormat: 'comparison',
+        alternativeFormats: ['hot_take', 'reaction'],
+        hookStyle: 'Honest review / Is it worth it?',
+        structureGuidance: 'Verdict teaser → Key points → Final rating',
+    },
+    discussion: {
+        primaryFormat: 'reaction',
+        alternativeFormats: ['hot_take'],
+        hookStyle: 'Am I the only one / What do you think',
+        structureGuidance: 'Pose question → Share take → Invite debate',
+    },
+    meme: {
+        primaryFormat: 'entertainment',
+        alternativeFormats: ['reaction'],
+        hookStyle: 'POV / When you realize',
+        structureGuidance: 'Instant humor → Quick escalation → Callback/Loop',
+    },
+    announcement: {
+        primaryFormat: 'urgency',
+        alternativeFormats: ['comparison', 'hot_take'],
+        hookStyle: 'JUST ANNOUNCED / Finally happening',
+        structureGuidance: 'News hook → What it is → Why it matters to you',
+    },
+};
+
+/**
+ * Trend type detection keywords
+ */
+export const TREND_TYPE_KEYWORDS: Record<TrendType, string[]> = {
+    controversy: [
+        'unpopular opinion', 'am i wrong', 'hot take', 'controversial',
+        'debate', 'fight me', 'change my mind', 'disagree', 'hate', 'overrated',
+    ],
+    breaking_news: [
+        'just happened', 'breaking', 'just announced', 'just now',
+        'happening now', 'update', 'confirmed', 'officially', 'just released',
+    ],
+    tutorial: [
+        'how to', 'guide', 'tutorial', 'step by step', 'tips', 'trick',
+        'hack', 'pro tip', 'beginners', 'learn', 'way to', 'method',
+    ],
+    story: [
+        'story time', 'tifu', 'happened to me', 'true story', 'my experience',
+        'confession', 'ama', 'relationship', 'update:', 'part 1', 'part 2',
+    ],
+    review: [
+        'review', 'worth it', 'honest opinion', 'rating', 'thoughts on',
+        'finally tried', 'is it good', 'comparison', 'vs', 'better than',
+    ],
+    discussion: [
+        'what do you think', 'thoughts?', 'discussion', 'eli5', 'why do',
+        'anyone else', 'am i the only', 'opinions on', 'question about',
+    ],
+    meme: [
+        'pov:', 'when you', 'me when', 'be like', 'nobody:', 'meme',
+        'lol', 'lmao', 'joke', 'funny', 'shitpost',
+    ],
+    announcement: [
+        'announced', 'official', 'launching', 'releasing', 'coming soon',
+        'new release', 'just dropped', 'reveal', 'teaser', 'trailer',
+    ],
 };

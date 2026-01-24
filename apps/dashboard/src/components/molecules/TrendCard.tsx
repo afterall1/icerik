@@ -6,9 +6,10 @@
  * @module components/molecules/TrendCard
  */
 
-import { Card, Badge } from '../atoms';
+import { Card, Badge, TrendTypeBadge } from '../atoms';
 import { NesTooltip } from './NesTooltip';
 import { ArrowUp, MessageCircle, Clock, Flame, Sparkles } from 'lucide-react';
+import type { TrendClassification } from '../../lib/api';
 
 interface TrendCardProps {
     id: string;
@@ -24,6 +25,8 @@ interface TrendCardProps {
     controversyFactor: number;
     permalink: string;
     onGenerateScript?: () => void;
+    /** Optional trend classification for type badge display */
+    classification?: TrendClassification;
 }
 
 function formatNumber(num: number): string {
@@ -65,6 +68,7 @@ export function TrendCard({
     controversyFactor,
     permalink,
     onGenerateScript,
+    classification,
 }: TrendCardProps) {
     return (
         <Card padding="md" className="group">
@@ -84,7 +88,14 @@ export function TrendCard({
                         NES: {Math.round(nes)}
                     </Badge>
                 </NesTooltip>
-                <span className="text-xs text-slate-500">r/{subreddit}</span>
+                {classification && (
+                    <TrendTypeBadge
+                        type={classification.trendType}
+                        confidence={classification.confidence}
+                        size="sm"
+                    />
+                )}
+                <span className="text-xs text-slate-500 ml-auto">r/{subreddit}</span>
             </div>
 
             <a

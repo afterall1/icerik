@@ -9,10 +9,12 @@
 
 import { useState, useCallback } from 'react';
 import { Card } from '../atoms';
-import type { PlatformScriptResult, Platform } from '../../lib/api';
+import type { PlatformScriptResult, Platform, AlgorithmScore, ViralPotentialLabel, PlatformScript, IterationResult } from '../../lib/api';
 import { PLATFORM_LABELS, PLATFORM_ICONS, PLATFORM_COLORS } from '../../lib/api';
-import { Copy, Check, ChevronDown, ChevronUp, Clock, FileText, AlertCircle, Sparkles, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Copy, Check, ChevronDown, ChevronUp, Clock, FileText, AlertCircle, Sparkles, RefreshCw, AlertTriangle, CheckCircle, TrendingUp, Wand2 } from 'lucide-react';
 import { AlgorithmEducationPanel } from './AlgorithmEducationPanel';
+import { AlgorithmScoreCard, CompactScoreBadge } from './AlgorithmScoreCard';
+import { IterationPanel } from './IterationPanel';
 
 /**
  * Platform-optimal duration thresholds for warning display
@@ -32,6 +34,16 @@ interface PlatformScriptCardProps {
     isLoading?: boolean;
     /** Callback to retry this platform */
     onRetry?: () => void;
+    /** Optional algorithm score result */
+    algorithmScore?: AlgorithmScore;
+    /** Optional viral potential label */
+    viralLabel?: ViralPotentialLabel;
+    /** Whether score is loading */
+    isScoreLoading?: boolean;
+    /** Callback when script is updated via iteration */
+    onScriptUpdated?: (script: PlatformScript) => void;
+    /** Whether to show iteration controls */
+    showIterationPanel?: boolean;
 }
 
 /**
@@ -108,11 +120,29 @@ function ScriptSection({
     );
 }
 
-export function PlatformScriptCard({ platform, result, isLoading, onRetry }: PlatformScriptCardProps) {
+export function PlatformScriptCard({
+    platform,
+    result,
+    isLoading,
+    onRetry,
+    algorithmScore,
+    viralLabel,
+    isScoreLoading,
+    onScriptUpdated,
+    showIterationPanel = false,
+}: PlatformScriptCardProps) {
     const [copied, setCopied] = useState(false);
+    const [iterationExpanded, setIterationExpanded] = useState(false);
     const label = PLATFORM_LABELS[platform];
     const icon = PLATFORM_ICONS[platform];
     const colors = PLATFORM_COLORS[platform];
+
+    // Handle iteration result
+    const handleIterationResult = useCallback((iterResult: IterationResult) => {
+        if (onScriptUpdated && iterResult.updatedScript) {
+            onScriptUpdated(iterResult.updatedScript);
+        }
+    }, [onScriptUpdated]);
 
     const handleCopyAll = useCallback(async () => {
         if (!result?.success) return;
@@ -199,13 +229,19 @@ export function PlatformScriptCard({ platform, result, isLoading, onRetry }: Pla
                         <span className="text-xl">{icon}</span>
                         <span className="font-bold text-white">{label}</span>
                     </div>
-                    <button
-                        onClick={handleCopyAll}
-                        className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition-colors"
-                        title="Tümünü Kopyala"
-                    >
-                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {/* Compact Score Badge */}
+                        {algorithmScore && viralLabel && (
+                            <CompactScoreBadge score={algorithmScore.overallScore} viralLabel={viralLabel} />
+                        )}
+                        <button
+                            onClick={handleCopyAll}
+                            className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition-colors"
+                            title="Tümünü Kopyala"
+                        >
+                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -318,6 +354,24 @@ export function PlatformScriptCard({ platform, result, isLoading, onRetry }: Pla
                 appliedOptimizations={script.optimizations}
             />
 
+            {/* Algorithm Score Card - Show if available */}
+            {(algorithmScore || isScoreLoading) && (
+                <div className="px-3 py-2 border-t border-slate-800">
+                    {isScoreLoading ? (
+                        <div className="flex items-center gap-2 text-slate-400 text-xs py-2">
+                            <TrendingUp className="w-4 h-4 animate-pulse" />
+                            <span>Viral skor hesaplanıyor...</span>
+                        </div>
+                    ) : algorithmScore && viralLabel ? (
+                        <AlgorithmScoreCard
+                            score={algorithmScore}
+                            viralLabel={viralLabel}
+                            compact={true}
+                        />
+                    ) : null}
+                </div>
+            )}
+
             {/* Warnings - Show if script was trimmed or has issues */}
             {script.warnings && script.warnings.length > 0 && (
                 <div className="px-3 py-2 border-t border-amber-800/50 bg-amber-900/20">
@@ -329,6 +383,37 @@ export function PlatformScriptCard({ platform, result, isLoading, onRetry }: Pla
                             ))}
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Iteration Panel - Toggle expandable */}
+            {showIterationPanel && onScriptUpdated && (
+                <div className="px-3 py-2 border-t border-slate-800">
+                    {!iterationExpanded ? (
+                        <button
+                            onClick={() => setIterationExpanded(true)}
+                            className="flex items-center gap-2 w-full text-left text-xs text-slate-400 hover:text-slate-300 transition-colors py-1"
+                        >
+                            <Wand2 className="w-3 h-3" />
+                            <span>Script İyileştir</span>
+                            <ChevronDown className="w-3 h-3 ml-auto" />
+                        </button>
+                    ) : (
+                        <div>
+                            <button
+                                onClick={() => setIterationExpanded(false)}
+                                className="flex items-center gap-2 w-full text-left text-xs text-slate-300 mb-2"
+                            >
+                                <Wand2 className="w-3 h-3" />
+                                <span>Script İyileştir</span>
+                                <ChevronUp className="w-3 h-3 ml-auto" />
+                            </button>
+                            <IterationPanel
+                                script={script}
+                                onScriptUpdated={handleIterationResult}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 

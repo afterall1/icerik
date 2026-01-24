@@ -4,6 +4,11 @@ import { logger as honoLogger } from 'hono/logger';
 import { getRedditFetcher, RedditFetchError } from '../ingestion/index.js';
 import { getNesCalculator, getTrendAggregator } from '../processing/index.js';
 import { getCacheService, getDatabaseStats, CACHE_TTL } from '../cache/index.js';
+import { getTrendClassifier } from '../ai/classification/index.js';
+import { getAlgorithmScorer } from '../ai/scoring/index.js';
+import { getAIMetrics } from '../ai/metrics/index.js';
+import { getScriptIterator, type IterationTarget } from '../ai/iteration/index.js';
+import { getVariantGenerator } from '../ai/variants/index.js';
 import { SUBREDDIT_CONFIG, CATEGORY_LABELS, CATEGORY_VIDEO_FORMATS } from '@icerik/shared';
 import type { TrendQuery, ContentCategory, ApiResponse, TrendSummary, TrendData, SubredditConfig } from '@icerik/shared';
 import type { VideoFormat } from '../ai/scriptGenerator.js';
@@ -842,6 +847,267 @@ export function createApiRouter(): Hono {
         });
     });
 
+    // ============================================
+    // PHASE 14: TREND INTELLIGENCE ENDPOINTS
+    // ============================================
+
+    /**
+     * POST /api/trends/:id/classify
+     * Classify a trend and get recommended content format
+     */
+    api.post('/trends/:id/classify', async (c) => {
+        try {
+            const trendId = c.req.param('id');
+
+            // Get trend from request body (since we may not have it cached)
+            const body = await c.req.json() as { trend?: TrendData };
+
+            if (!body.trend) {
+                // Try to get from cache (if available via other means)
+                return c.json({
+                    success: false,
+                    error: 'Trend data is required in request body',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const classifier = getTrendClassifier();
+            const classification = classifier.classify(body.trend);
+            const formatOptions = classifier.getFormatOptions(classification.trendType);
+
+            logger.info({
+                trendId,
+                trendType: classification.trendType,
+                confidence: classification.confidence,
+                format: classification.recommendedFormat,
+            }, 'Trend classified');
+
+            return c.json({
+                success: true,
+                data: {
+                    trendId,
+                    trend: body.trend,
+                    classification,
+                    formatOptions,
+                },
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Trend classification failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * POST /api/scripts/score
+     * Score an existing script for viral potential
+     */
+    api.post('/scripts/score', async (c) => {
+        try {
+            const body = await c.req.json() as { script: import('@icerik/shared').PlatformScript };
+
+            if (!body.script || !body.script.platform) {
+                return c.json({
+                    success: false,
+                    error: 'Valid PlatformScript is required in request body',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const scorer = getAlgorithmScorer();
+            const algorithmScore = scorer.score(body.script);
+            const viralLabel = scorer.getViralLabel(algorithmScore.overallScore);
+            const category = scorer.getScoreCategory(algorithmScore.overallScore);
+
+            logger.info({
+                platform: body.script.platform,
+                overallScore: algorithmScore.overallScore,
+                category,
+            }, 'Script scored');
+
+            return c.json({
+                success: true,
+                data: {
+                    algorithmScore,
+                    viralPotential: viralLabel,
+                    category,
+                },
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Script scoring failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    // ============================================================
+    // Phase 15: AI Quality Enhancement Endpoints
+    // ============================================================
+
+    /**
+     * GET /api/ai/metrics
+     * Get AI operations metrics and summary
+     */
+    api.get('/ai/metrics', (c) => {
+        const metrics = getAIMetrics();
+        const since = c.req.query('since')
+            ? parseInt(c.req.query('since')!, 10)
+            : undefined;
+
+        const summary = metrics.getSummary(since);
+        const recentOperations = metrics.getRecentMetrics(20);
+
+        return c.json({
+            success: true,
+            data: {
+                summary,
+                recentOperations,
+                inProgress: metrics.getInProgressCount(),
+            },
+            timestamp: new Date().toISOString(),
+        });
+    });
+
+    /**
+     * POST /api/scripts/iterate
+     * Iterate on a specific section of a script
+     */
+    api.post('/scripts/iterate', async (c) => {
+        try {
+            const body = await c.req.json() as {
+                originalScript: import('@icerik/shared').PlatformScript;
+                target: IterationTarget;
+                newTone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+                additionalInstructions?: string;
+            };
+
+            if (!body.originalScript || !body.target) {
+                return c.json({
+                    success: false,
+                    error: 'originalScript and target are required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const validTargets: IterationTarget[] = [
+                'hook', 'body', 'cta', 'title', 'hashtags',
+                'shorten', 'lengthen', 'change_tone', 'add_hooks'
+            ];
+
+            if (!validTargets.includes(body.target)) {
+                return c.json({
+                    success: false,
+                    error: `Invalid target. Must be one of: ${validTargets.join(', ')}`,
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const iterator = getScriptIterator();
+            const result = await iterator.iterate({
+                originalScript: body.originalScript,
+                target: body.target,
+                newTone: body.newTone,
+                additionalInstructions: body.additionalInstructions,
+            });
+
+            logger.info({
+                target: body.target,
+                platform: body.originalScript.platform,
+                durationMs: result.metadata.durationMs,
+            }, 'Script iteration completed');
+
+            return c.json({
+                success: true,
+                data: result,
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Script iteration failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * POST /api/generate-script-variants
+     * Generate A/B script variants with different styles
+     */
+    api.post('/generate-script-variants', async (c) => {
+        try {
+            const body = await c.req.json() as {
+                trend: TrendData;
+                platform: import('@icerik/shared').Platform;
+                styles?: import('../ai/variants/index.js').VariantStyle[];
+                durationSeconds?: number;
+                tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+                calculateScores?: boolean;
+            };
+
+            if (!body.trend || !body.platform) {
+                return c.json({
+                    success: false,
+                    error: 'trend and platform are required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const validPlatforms = ['tiktok', 'reels', 'shorts'];
+            if (!validPlatforms.includes(body.platform)) {
+                return c.json({
+                    success: false,
+                    error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}`,
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const generator = getVariantGenerator();
+            const result = await generator.generateVariants(
+                body.trend,
+                body.platform,
+                {
+                    styles: body.styles ?? ['high_energy', 'story_driven'],
+                    durationSeconds: body.durationSeconds,
+                    tone: body.tone,
+                    calculateScores: body.calculateScores ?? true,
+                }
+            );
+
+            logger.info({
+                trendId: body.trend.id,
+                platform: body.platform,
+                variantCount: result.variants.length,
+                recommended: result.recommended,
+            }, 'Variant generation completed');
+
+            return c.json({
+                success: true,
+                data: result,
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Variant generation failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
     return api;
 }
-

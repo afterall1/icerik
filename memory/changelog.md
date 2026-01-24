@@ -6,6 +6,211 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.14.0] - 2026-01-24
+
+### 📊 Advanced Analytics (Phase 18)
+
+Local-first analytics ve rating sistemi.
+
+### Added
+- **useScriptRating Hook** (`apps/dashboard/src/lib/useScriptRating.ts`)
+  - IndexedDB persistence
+  - Like/dislike thumbs rating
+  - Optional 1-5 star rating
+  - Text feedback support
+  - Statistics aggregation
+
+- **useAnalytics Hook** (`apps/dashboard/src/lib/useAnalytics.ts`)
+  - localStorage event tracking
+  - Copy/export/iterate event counters
+  - Platform breakdown
+  - Session tracking
+  - Summary statistics
+
+- **RatingPanel Component** (`apps/dashboard/src/components/molecules/RatingPanel.tsx`)
+  - Thumbs up/down buttons
+  - Star rating UI
+  - Feedback textarea
+  - Compact mode
+
+- **AnalyticsPanel Component** (`apps/dashboard/src/components/molecules/AnalyticsPanel.tsx`)
+  - Summary stat cards
+  - Platform breakdown
+  - Rating statistics
+  - Export/reset actions
+
+---
+
+## [1.13.0] - 2026-01-24
+
+### 📁 Content Management (Phase 17)
+
+Browser-native content yönetimi.
+
+### Added
+- **useFavorites Hook** (`apps/dashboard/src/lib/useFavorites.ts`)
+  - localStorage persistence
+  - Max 100 favorites
+  - Toggle/clear functionality
+
+- **useScriptHistory Hook** (`apps/dashboard/src/lib/useScriptHistory.ts`)
+  - IndexedDB persistence
+  - Max 50 history entries
+  - Script metadata storage
+
+- **useExport Hook** (`apps/dashboard/src/lib/useExport.ts`)
+  - Markdown export
+  - JSON export
+  - Clipboard copy
+
+- **FavoriteButton Component** (`apps/dashboard/src/components/atoms/FavoriteButton.tsx`)
+- **FavoritesPanel Component** (`apps/dashboard/src/components/molecules/FavoritesPanel.tsx`)
+- **HistoryPanel Component** (`apps/dashboard/src/components/molecules/HistoryPanel.tsx`)
+
+---
+
+## [1.12.0] - 2026-01-24
+
+### 🚀 Deployment & CI/CD (Phase 16)
+
+GitHub Actions ve deployment altyapısı.
+
+### Added
+- **GitHub Actions CI Workflow** (`.github/workflows/ci.yml`)
+  - Build job (shared, engine, dashboard)
+  - Type-check job
+  - Lint job (if configured)
+  - Test job
+  - pnpm caching
+
+- **Dependabot Configuration** (`.github/dependabot.yml`)
+  - Weekly dependency updates
+  - Grouped by type
+
+- **Deployment Guide** (`DEPLOYMENT.md`)
+  - Docker deployment instructions
+  - Environment variables
+  - Health checks
+  - Troubleshooting
+
+---
+
+## [1.11.0] - 2026-01-24
+
+### 🧠 AI Quality Enhancement (Phase 15)
+
+AI script kalitesini artıran modüller.
+
+### Added
+- **AIMetrics Module** (`apps/engine/src/ai/metrics/AIMetrics.ts`)
+  - Operation timing tracking
+  - Token usage monitoring
+  - Quality score tracking
+  - Knowledge cache stats
+
+- **ExampleSelector Module** (`apps/engine/src/ai/examples/ExampleSelector.ts`)
+  - Dynamic few-shot selection
+  - Similarity scoring (category, NES, subreddit, keywords)
+
+- **ScriptIterator Module** (`apps/engine/src/ai/iteration/ScriptIterator.ts`)
+  - 9 iteration targets
+  - Partial script regeneration
+  - Tone modification
+
+- **VariantGenerator Module** (`apps/engine/src/ai/variants/VariantGenerator.ts`)
+  - 5 variant styles
+  - A/B script generation
+  - Auto-scoring integration
+
+- **API Endpoints**
+  - `GET /api/ai/metrics`
+  - `POST /api/scripts/iterate`
+  - `POST /api/generate-script-variants`
+
+- **Dashboard UI**
+  - IterationPanel component
+  - Phase 15 API types & hooks
+
+---
+
+## [1.10.0] - 2026-01-24
+
+### 🧠 Trend Intelligence & Viral Scoring (Phase 14)
+
+Supreme Council değerlendirmesi sonrası P0 öneriler implemente edildi.
+
+### Added
+- **Shared Package Types** (`packages/shared/src/types.ts`)
+  - `TrendType` enum (8 types: controversy, breaking_news, tutorial, story, review, discussion, meme, announcement)
+  - `ContentFormat` enum (7 formats: hot_take, urgency, step_by_step, narrative_arc, comparison, reaction, entertainment)
+  - `TrendClassification` interface
+  - `AlgorithmScore` interface (5-dimensional viral scoring)
+  - `ClassifiedTrend` interface
+
+- **Shared Package Constants** (`packages/shared/src/constants.ts`)
+  - `TREND_TYPE_FORMATS` - Format recommendations per trend type
+  - `TREND_TYPE_KEYWORDS` - Detection keywords per trend type
+
+- **TrendClassifier Module** (`apps/engine/src/ai/classification/`)
+  - `TrendClassifier.ts` (~200 lines)
+    - Keyword matching in title
+    - Subreddit bias analysis
+    - Engagement pattern analysis
+    - Time-based signals (breaking news detection)
+    - Confidence scoring algorithm
+  - `index.ts` - Module exports
+
+- **AlgorithmScorer Module** (`apps/engine/src/ai/scoring/`)
+  - `AlgorithmScorer.ts` (~470 lines)
+    - Hook Strength scoring (25% weight)
+    - Completion Potential scoring (25% weight)
+    - Engagement Triggers scoring (20% weight)
+    - Platform Optimization scoring (15% weight)
+    - Loop Potential scoring (15% weight)
+    - Viral label generation (🔥 → ⚠️)
+    - Improvement suggestions
+  - `index.ts` - Module exports
+
+- **API Endpoints** (`apps/engine/src/api/routes.ts`)
+  - `POST /api/trends/:id/classify` - Classify trend & get format recommendation
+  - `POST /api/scripts/score` - Score script for viral potential
+
+- **Dashboard API Types** (`apps/dashboard/src/lib/api.ts`)
+  - `TrendType`, `ContentFormat` types
+  - `TREND_TYPE_CONFIG` constant (8 trend type color/emoji configs)
+  - `TrendClassification`, `AlgorithmScore`, `ViralPotentialLabel` interfaces
+  - `classificationApi` client methods
+
+- **React Query Hooks** (`apps/dashboard/src/lib/hooks.ts`)
+  - `useClassifyTrend` - Trend classification mutation
+  - `useScoreScript` - Single script scoring mutation
+  - `useBatchScoreScripts` - Batch scoring for parallel platforms
+
+- **TrendTypeBadge Component** (`apps/dashboard/src/components/atoms/TrendTypeBadge.tsx`)
+  - 8 trend type color-coded badges
+  - Confidence display option
+  - Size variants (sm/md)
+  - Skeleton loader
+
+- **AlgorithmScoreCard Component** (`apps/dashboard/src/components/molecules/AlgorithmScoreCard.tsx`)
+  - Overall score circle with gradient
+  - 5 metric progress bars
+  - Improvement suggestions section
+  - Compact mode for inline display
+  - CompactScoreBadge variant
+
+### Changed
+- **TrendCard.tsx** - Added `classification` prop, renders TrendTypeBadge
+- **PlatformScriptCard.tsx** - Added score display props, renders AlgorithmScoreCard
+- **MultiPlatformScriptModal.tsx** - Auto-scoring after successful script generation
+
+### Technical
+- 16 files added/modified
+- ~1750 lines of new code
+- TypeScript build: Passed (shared, engine, dashboard)
+
+---
+
 ## [1.9.0] - 2026-01-24
 
 ### 🧠 Native Gemini Education System (Phase 13)

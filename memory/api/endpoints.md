@@ -1,6 +1,6 @@
 # API Contracts - Endpoints
 
-> **Son Güncelleme**: 22 Ocak 2026
+> **Son Güncelleme**: 24 Ocak 2026
 
 Bu dosya, tüm REST API endpoint'lerinin kontratlarını tanımlar.
 
@@ -36,43 +36,11 @@ Trend listesi döner.
 - `X-Cache`: `HIT` | `MISS` | `BYPASS`
 - `X-Response-Time`: e.g., `150ms`
 
-**Response:**
-```typescript
-interface TrendData {
-    id: string;
-    title: string;
-    subreddit: string;
-    category: ContentCategory;
-    score: number;
-    upvoteRatio: number;
-    numComments: number;
-    createdUtc: number;
-    nes: number;
-    engagementVelocity: number;
-    controversyFactor: number;
-    ageHours: number;
-    sourceUrl: string;
-    permalink: string;
-    fetchedAt: Date;
-}
-```
-
 ---
 
 ### GET /api/trends/summary
 
 Trend özeti döner.
-
-**Response:**
-```typescript
-interface TrendSummary {
-    topTrends: TrendData[];
-    categoryBreakdown: Record<ContentCategory, number>;
-    totalProcessed: number;
-    avgEngagementVelocity: number;
-    fetchedAt: Date;
-}
-```
 
 ---
 
@@ -80,37 +48,11 @@ interface TrendSummary {
 
 Mevcut kategorileri döner.
 
-**Response:**
-```typescript
-interface Category {
-    id: string;
-    label: string;  // Turkish label
-    subredditCount: number;
-    videoFormats: string[];
-}
-```
-
 ---
 
 ### GET /api/subreddits
 
 Subreddit konfigürasyonlarını döner.
-
-**Query Parameters:**
-| Param | Type | Description |
-|-------|------|-------------|
-| `category` | string | Filter by category |
-
-**Response:**
-```typescript
-interface Subreddit {
-    name: string;
-    category: ContentCategory;
-    tier: 1 | 2 | 3;
-    subscribers: number;
-    baselineScore: number;
-}
-```
 
 ---
 
@@ -118,43 +60,11 @@ interface Subreddit {
 
 Engine durumu döner.
 
-**Response:**
-```typescript
-interface EngineStatus {
-    rateLimit: RateLimitStatus;
-    cache: {
-        totalEntries: number;
-        hitRate: string;
-        totalHits: number;
-        expiredCount: number;
-        dbSizeKB: number;
-    };
-    subreddits: {
-        total: number;
-        tier1: number;
-        tier2: number;
-        tier3: number;
-    };
-    method: string;
-}
-```
-
 ---
 
 ### GET /api/health
 
 Health check endpoint.
-
-**Response:**
-```typescript
-{
-    status: 'ok' | 'degraded';
-    timestamp: string;
-    version: string;
-    rateLimit: RateLimitStatus;
-    cache: CacheStats;
-}
-```
 
 ---
 
@@ -164,47 +74,18 @@ Health check endpoint.
 
 Cache'i invalidate eder.
 
-**Request Body:**
-```typescript
-{
-    all?: boolean;        // Invalidate everything
-    prefix?: string;      // Invalidate by prefix (e.g., 'trends')
-    category?: string;    // Invalidate by category
-}
-```
-
----
-
 ### POST /api/cache/cleanup
 
 Expired cache entry'leri temizler.
-
-**Response:**
-```typescript
-{ success: true, deleted: number }
-```
 
 ---
 
 ## Worker Management
 
-> **Note**: Bu endpoint'ler sadece `--with-worker` mode'da aktif.
-
 ### GET /api/worker/status
-
-Worker durumu döner.
-
 ### POST /api/worker/start
-
-Worker polling'i başlatır.
-
 ### POST /api/worker/stop
-
-Worker polling'i durdurur.
-
 ### POST /api/worker/force-run/:tier
-
-Belirtilen tier'ı hemen poll eder.
 
 ---
 
@@ -212,43 +93,33 @@ Belirtilen tier'ı hemen poll eder.
 
 ### POST /api/generate-script
 
-AI ile video scripti üretir.
+Single platform script generation.
+
+---
+
+### POST /api/generate-multi-platform (Phase 11)
+
+Multi-platform script generation with platform agents.
 
 **Request Body:**
 ```typescript
 {
     trend: TrendData;
-    options?: {
-        format?: VideoFormat;
-        durationSeconds?: number;  // 15-180
-        platform?: 'tiktok' | 'reels' | 'shorts' | 'all';
+    options: {
+        platforms: ('tiktok' | 'reels' | 'shorts')[];
+        durationSeconds?: number;
         tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
-        language?: 'en' | 'tr';
-        includeCta?: boolean;
-        includeHook?: boolean;
+        language?: 'tr' | 'en';
     };
 }
 ```
 
 **Response:**
 ```typescript
-interface GeneratedScript {
-    script: string;
-    title: string;
-    hashtags: string[];
-    estimatedDurationSeconds: number;
-    sections: {
-        hook?: string;
-        body: string;
-        cta?: string;
-    };
-    metadata: {
-        format: VideoFormat;
-        platform: string;
-        generatedAt: string;
-        trendId: string;
-        category: ContentCategory;
-    };
+{
+    success: boolean;
+    scripts: PlatformScript[];
+    errors: { platform: string; error: string }[];
 }
 ```
 
@@ -258,29 +129,149 @@ interface GeneratedScript {
 
 AI servis durumunu döner.
 
-**Response:**
-```typescript
-{
-    configured: boolean;
-    rateLimit: {
-        requestsInLastMinute: number;
-        maxRequestsPerMinute: number;
-        isLimited: boolean;
-        backoffRemainingMs: number;
-    };
-}
-```
-
 ---
 
 ### GET /api/ai/formats/:category
 
 Kategori için mevcut video formatlarını döner.
 
+---
+
+## Trend Intelligence (Phase 14)
+
+### POST /api/trends/:id/classify
+
+Trend'i sınıflandır ve format önerileri al.
+
 **Response:**
 ```typescript
 {
-    category: string;
-    formats: VideoFormat[];
+    classification: {
+        trendType: TrendType;
+        confidence: number;
+        recommendedFormats: ContentFormat[];
+        signals: { type: string; weight: number }[];
+    };
 }
 ```
+
+---
+
+### POST /api/scripts/score
+
+Script'in viral potansiyelini skorla.
+
+**Request Body:**
+```typescript
+{
+    script: PlatformScript;
+    trend?: TrendData;
+}
+```
+
+**Response:**
+```typescript
+{
+    score: {
+        hookStrength: { score: number; details: string[] };
+        completionPotential: { score: number; details: string[] };
+        engagementTriggers: { score: number; details: string[] };
+        platformOptimization: { score: number; details: string[] };
+        loopPotential: { score: number; details: string[] };
+        overall: number;
+        improvements: string[];
+    };
+}
+```
+
+---
+
+## AI Quality Enhancement (Phase 15)
+
+### GET /api/ai/metrics
+
+AI operasyon metriklerini döner.
+
+**Query Parameters:**
+| Param | Type | Description |
+|-------|------|-------------|
+| `since` | string (ISO) | Filter by start time |
+| `platform` | string | Filter by platform |
+| `operation` | string | Filter by operation type |
+
+**Response:**
+```typescript
+{
+    summary: {
+        totalOperations: number;
+        avgLatencyMs: number;
+        avgQualityScore: number;
+        cacheHitRate: number;
+        totalTokensUsed: number;
+        byPlatform: Record<string, { count: number; avgLatency: number }>;
+        byOperation: Record<string, { count: number; avgLatency: number }>;
+    };
+}
+```
+
+---
+
+### POST /api/scripts/iterate
+
+Script'in belirli bölümünü yeniden üret.
+
+**Request Body:**
+```typescript
+{
+    script: PlatformScript;
+    target: 'hook' | 'body' | 'cta' | 'title' | 'hashtags' | 'shorten' | 'lengthen' | 'change_tone' | 'add_hooks';
+    tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+    additionalInstructions?: string;
+}
+```
+
+**Response:**
+```typescript
+{
+    iteration: {
+        originalScript: PlatformScript;
+        updatedScript: PlatformScript;
+        target: string;
+        changes: string[];
+    };
+}
+```
+
+---
+
+### POST /api/generate-script-variants
+
+A/B varyant scriptler üret.
+
+**Request Body:**
+```typescript
+{
+    trend: TrendData;
+    options: MultiPlatformOptions;
+    variantOptions: {
+        styles?: ('high_energy' | 'story_driven' | 'controversial' | 'educational' | 'reaction')[];
+        platform?: 'tiktok' | 'reels' | 'shorts';
+        countPerStyle?: number;
+        includeScoring?: boolean;
+    };
+}
+```
+
+**Response:**
+```typescript
+{
+    variants: {
+        variantId: string;
+        style: string;
+        script: PlatformScript;
+        algorithmScore?: AlgorithmScore;
+        differentiator: string;
+    }[];
+}
+```
+

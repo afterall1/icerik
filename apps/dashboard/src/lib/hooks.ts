@@ -287,3 +287,165 @@ export function usePlatformTips(platform: Platform | null) {
         enabled: !!platform,
     });
 }
+
+// ============================================================
+// Trend Classification & Scoring Hooks (Phase 14)
+// ============================================================
+
+import {
+    classificationApi,
+    type ClassificationResult,
+    type ScoreResult,
+    type PlatformScript,
+    type TrendData as TrendDataForClassification,
+} from './api';
+
+/**
+ * Query keys for classification operations
+ */
+export const classificationQueryKeys = {
+    all: ['classification'] as const,
+    trend: (trendId: string) => [...classificationQueryKeys.all, 'trend', trendId] as const,
+    score: (platform: string, trendId: string) => [...classificationQueryKeys.all, 'score', platform, trendId] as const,
+};
+
+/**
+ * Hook to classify a trend and get format recommendations
+ *
+ * @example
+ * const { mutate: classifyTrend, data, isPending } = useClassifyTrend();
+ * classifyTrend(trend);
+ */
+export function useClassifyTrend() {
+    return useMutation<ClassificationResult, Error, TrendDataForClassification>({
+        mutationFn: (trend) => classificationApi.classifyTrend(trend),
+        retry: false,
+        onError: (error) => {
+            console.error('Trend classification failed:', error.message);
+        },
+    });
+}
+
+/**
+ * Hook to score a platform script for viral potential
+ *
+ * @example
+ * const { mutate: scoreScript, data, isPending } = useScoreScript();
+ * scoreScript(platformScript);
+ */
+export function useScoreScript() {
+    return useMutation<ScoreResult, Error, PlatformScript>({
+        mutationFn: (script) => classificationApi.scoreScript(script),
+        retry: false,
+        onError: (error) => {
+            console.error('Script scoring failed:', error.message);
+        },
+    });
+}
+
+/**
+ * Hook to score multiple scripts (batch scoring)
+ *
+ * @example
+ * const { mutate: batchScore, data, isPending } = useBatchScoreScripts();
+ * batchScore([tiktokScript, reelsScript, shortsScript]);
+ */
+export function useBatchScoreScripts() {
+    return useMutation<Map<string, ScoreResult>, Error, PlatformScript[]>({
+        mutationFn: async (scripts) => {
+            const results = new Map<string, ScoreResult>();
+
+            // Score scripts in parallel
+            const scorePromises = scripts.map(async (script) => {
+                try {
+                    const result = await classificationApi.scoreScript(script);
+                    results.set(script.platform, result);
+                } catch (error) {
+                    console.error(`Failed to score ${script.platform}:`, error);
+                    // Continue with other scripts even if one fails
+                }
+            });
+
+            await Promise.allSettled(scorePromises);
+            return results;
+        },
+        retry: false,
+        onError: (error) => {
+            console.error('Batch scoring failed:', error.message);
+        },
+    });
+}
+
+// ============================================================
+// Phase 15: AI Quality Enhancement Hooks
+// ============================================================
+
+import {
+    iterationApi,
+    variantApi,
+    metricsApi,
+    type IterationRequest,
+    type IterationResult,
+    type VariantGenerationOptions,
+    type VariantGenerationResult,
+    type AIMetricsResponse,
+} from './api';
+
+/**
+ * Hook to iterate on a script section
+ *
+ * @example
+ * const { mutate: iterate, data, isPending } = useIterateScript();
+ * iterate({ originalScript, target: 'hook' });
+ */
+export function useIterateScript() {
+    return useMutation<IterationResult, Error, IterationRequest>({
+        mutationFn: (request) => iterationApi.iterateScript(request),
+        retry: false,
+        onError: (error) => {
+            console.error('Script iteration failed:', error.message);
+        },
+    });
+}
+
+/**
+ * Hook to generate A/B script variants
+ *
+ * @example
+ * const { mutate: generateVariants, data, isPending } = useGenerateVariants();
+ * generateVariants({ trend, platform: 'tiktok', options: { styles: ['high_energy'] } });
+ */
+export function useGenerateVariants() {
+    return useMutation<
+        VariantGenerationResult,
+        Error,
+        { trend: TrendData; platform: Platform; options: VariantGenerationOptions }
+    >({
+        mutationFn: ({ trend, platform, options }) =>
+            variantApi.generateVariants(trend, platform, options),
+        retry: false,
+        onError: (error) => {
+            console.error('Variant generation failed:', error.message);
+        },
+    });
+}
+
+/**
+ * Hook to fetch AI operation metrics
+ *
+ * @example
+ * const { data: metrics, isLoading } = useAIMetrics();
+ */
+export function useAIMetrics(
+    since?: number,
+    options?: Omit<UseQueryOptions<AIMetricsResponse, Error>, 'queryKey' | 'queryFn'>
+) {
+    return useQuery({
+        queryKey: ['ai', 'metrics', { since }] as const,
+        queryFn: () => metricsApi.getMetrics(since),
+        staleTime: 30 * 1000, // 30 seconds
+        refetchInterval: 60 * 1000, // Refresh every minute
+        ...options,
+    });
+}
+

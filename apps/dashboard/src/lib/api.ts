@@ -316,6 +316,8 @@ export interface PlatformScript {
         cta?: PlatformScriptSection;
     };
     optimizations: string[];
+    /** Warnings about script quality (e.g., truncation, missing sections) */
+    warnings?: string[];
     metadata: {
         generatedAt: string;
         trendId: string;
@@ -323,6 +325,7 @@ export interface PlatformScript {
         agentVersion: string;
     };
 }
+
 
 /**
  * Individual platform result (success or failure)
@@ -498,3 +501,419 @@ export const multiPlatformApi = {
     },
 };
 
+// ============================================================
+// Trend Classification Types (Phase 14)
+// ============================================================
+
+/**
+ * Content types for trend classification
+ */
+export type TrendType =
+    | 'controversy'
+    | 'breaking_news'
+    | 'tutorial'
+    | 'story'
+    | 'review'
+    | 'discussion'
+    | 'meme'
+    | 'announcement';
+
+/**
+ * Recommended content formats
+ */
+export type ContentFormat =
+    | 'hot_take'
+    | 'urgency'
+    | 'step_by_step'
+    | 'narrative_arc'
+    | 'comparison'
+    | 'reaction'
+    | 'entertainment';
+
+/**
+ * Display configuration for trend types
+ */
+export const TREND_TYPE_CONFIG: Record<TrendType, { label: string; emoji: string; colorClass: string }> = {
+    controversy: { label: 'Tartışma', emoji: '🔥', colorClass: 'bg-red-900/60 text-red-300 border-red-700/50' },
+    breaking_news: { label: 'Son Dakika', emoji: '⚡', colorClass: 'bg-yellow-900/60 text-yellow-300 border-yellow-700/50' },
+    tutorial: { label: 'Rehber', emoji: '📚', colorClass: 'bg-blue-900/60 text-blue-300 border-blue-700/50' },
+    story: { label: 'Hikaye', emoji: '📖', colorClass: 'bg-purple-900/60 text-purple-300 border-purple-700/50' },
+    review: { label: 'İnceleme', emoji: '⭐', colorClass: 'bg-amber-900/60 text-amber-300 border-amber-700/50' },
+    discussion: { label: 'Sohbet', emoji: '💬', colorClass: 'bg-slate-800/60 text-slate-300 border-slate-600/50' },
+    meme: { label: 'Meme', emoji: '😂', colorClass: 'bg-pink-900/60 text-pink-300 border-pink-700/50' },
+    announcement: { label: 'Duyuru', emoji: '📢', colorClass: 'bg-green-900/60 text-green-300 border-green-700/50' },
+};
+
+/**
+ * Classification result from API
+ */
+export interface TrendClassification {
+    trendType: TrendType;
+    confidence: number;
+    recommendedFormat: ContentFormat;
+    formatRationale: string;
+    keywords: string[];
+}
+
+/**
+ * Format options for a trend type
+ */
+export interface FormatOptions {
+    primary: ContentFormat;
+    alternatives: ContentFormat[];
+    hookStyle: string;
+    structureGuidance: string;
+}
+
+/**
+ * Classification API response
+ */
+export interface ClassificationResult {
+    trendId: string;
+    trend: TrendData;
+    classification: TrendClassification;
+    formatOptions: FormatOptions;
+}
+
+// ============================================================
+// Algorithm Scoring Types (Phase 14)
+// ============================================================
+
+/**
+ * Algorithm score breakdown item
+ */
+export interface ScoreBreakdownItem {
+    metric: string;
+    score: number;
+    feedback: string;
+}
+
+/**
+ * Full algorithm score result
+ */
+export interface AlgorithmScore {
+    hookStrength: number;
+    completionPotential: number;
+    engagementTriggers: number;
+    platformOptimization: number;
+    loopPotential: number;
+    overallScore: number;
+    breakdown: ScoreBreakdownItem[];
+    improvements: string[];
+}
+
+/**
+ * Viral potential label
+ */
+export interface ViralPotentialLabel {
+    label: string;
+    emoji: string;
+    color: 'green' | 'blue' | 'yellow' | 'orange' | 'red';
+}
+
+/**
+ * Score API response
+ */
+export interface ScoreResult {
+    algorithmScore: AlgorithmScore;
+    viralPotential: ViralPotentialLabel;
+    category: 'excellent' | 'good' | 'average' | 'poor' | 'critical';
+}
+
+/**
+ * Classification & Scoring API client
+ */
+export const classificationApi = {
+    /**
+     * Classify a trend and get format recommendations
+     */
+    async classifyTrend(trend: TrendData): Promise<ClassificationResult> {
+        const response = await fetch(`${API_BASE}/trends/${trend.id}/classify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trend }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Classification failed' }));
+            throw new Error(error.error || `API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<ClassificationResult> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Classification failed');
+        }
+
+        return data.data as ClassificationResult;
+    },
+
+    /**
+     * Score a platform script for viral potential
+     */
+    async scoreScript(script: PlatformScript): Promise<ScoreResult> {
+        const response = await fetch(`${API_BASE}/scripts/score`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ script }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Scoring failed' }));
+            throw new Error(error.error || `API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<ScoreResult> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Scoring failed');
+        }
+
+        return data.data as ScoreResult;
+    },
+};
+
+// ============================================================
+// Phase 15: AI Quality Enhancement API
+// ============================================================
+
+/**
+ * Iteration target - which part to regenerate
+ */
+export type IterationTarget =
+    | 'hook'
+    | 'body'
+    | 'cta'
+    | 'title'
+    | 'hashtags'
+    | 'shorten'
+    | 'lengthen'
+    | 'change_tone'
+    | 'add_hooks';
+
+/**
+ * Iteration request
+ */
+export interface IterationRequest {
+    originalScript: PlatformScript;
+    target: IterationTarget;
+    newTone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+    additionalInstructions?: string;
+}
+
+/**
+ * Iteration result
+ */
+export interface IterationResult {
+    updatedScript: PlatformScript;
+    changedSections: string[];
+    metadata: {
+        iterationType: IterationTarget;
+        tokensUsed: number;
+        durationMs: number;
+    };
+}
+
+/**
+ * Script variant styles
+ */
+export type VariantStyle =
+    | 'high_energy'
+    | 'story_driven'
+    | 'controversial'
+    | 'educational'
+    | 'reaction';
+
+/**
+ * Variant style configuration for UI display
+ */
+export const VARIANT_STYLE_CONFIG: Record<VariantStyle, { label: string; emoji: string; description: string }> = {
+    high_energy: { label: 'Enerjik', emoji: '⚡', description: 'Hızlı tempo, keskin geçişler' },
+    story_driven: { label: 'Hikaye', emoji: '📖', description: 'Duygusal anlatı, dramatik yapı' },
+    controversial: { label: 'Tartışmalı', emoji: '🔥', description: 'Cesur görüş, tartışma başlatıcı' },
+    educational: { label: 'Eğitici', emoji: '🎓', description: 'Açıklayıcı, adım adım' },
+    reaction: { label: 'Tepki', emoji: '😲', description: 'Yorum, mizah, kişisel görüş' },
+};
+
+/**
+ * Script variant result
+ */
+export interface ScriptVariant {
+    variantId: string;
+    style: VariantStyle;
+    script: PlatformScript;
+    algorithmScore?: AlgorithmScore;
+    differentiator: string;
+}
+
+/**
+ * Variant generation options
+ */
+export interface VariantGenerationOptions {
+    styles: VariantStyle[];
+    durationSeconds?: number;
+    tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+    calculateScores?: boolean;
+}
+
+/**
+ * Variant generation result
+ */
+export interface VariantGenerationResult {
+    trend: TrendData;
+    platform: Platform;
+    variants: ScriptVariant[];
+    recommended: string;
+    metadata: {
+        generatedAt: string;
+        totalDurationMs: number;
+        variantCount: number;
+    };
+}
+
+/**
+ * AI operation type
+ */
+export type AIOperationType = 'generate' | 'generate_variants' | 'iterate' | 'score' | 'classify' | 'validate';
+
+/**
+ * AI operation metrics
+ */
+export interface AIOperationMetrics {
+    operationId: string;
+    operationType: AIOperationType;
+    platform?: Platform;
+    category?: string;
+    startTime: number;
+    endTime: number;
+    durationMs: number;
+    promptTokens: number;
+    responseTokens: number;
+    totalTokens: number;
+    validationScore?: number;
+    algorithmScore?: number;
+    retryCount: number;
+    knowledgeCacheHit: boolean;
+    knowledgeLoadTimeMs: number;
+    success: boolean;
+    errorType?: string;
+    errorMessage?: string;
+}
+
+/**
+ * AI metrics summary
+ */
+export interface AIMetricsSummary {
+    totalOperations: number;
+    successfulOperations: number;
+    failedOperations: number;
+    successRate: number;
+    avgDurationMs: number;
+    avgTokensPerOperation: number;
+    avgValidationScore: number;
+    avgAlgorithmScore: number;
+    knowledgeCacheHitRate: number;
+    operationsByType: Partial<Record<AIOperationType, number>>;
+    operationsByPlatform: Record<string, number>;
+    earliestOperation: number;
+    latestOperation: number;
+}
+
+/**
+ * AI metrics response
+ */
+export interface AIMetricsResponse {
+    summary: AIMetricsSummary;
+    recentOperations: AIOperationMetrics[];
+    inProgress: number;
+}
+
+/**
+ * Script Iteration API client
+ */
+export const iterationApi = {
+    /**
+     * Iterate on a script section
+     */
+    async iterateScript(request: IterationRequest): Promise<IterationResult> {
+        const response = await fetch(`${API_BASE}/scripts/iterate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Iteration failed' }));
+            throw new Error(error.error || `API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<IterationResult> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Iteration failed');
+        }
+
+        return data.data as IterationResult;
+    },
+};
+
+/**
+ * Variant Generation API client
+ */
+export const variantApi = {
+    /**
+     * Generate A/B script variants
+     */
+    async generateVariants(
+        trend: TrendData,
+        platform: Platform,
+        options: VariantGenerationOptions
+    ): Promise<VariantGenerationResult> {
+        const response = await fetch(`${API_BASE}/generate-script-variants`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                trend,
+                platform,
+                styles: options.styles,
+                durationSeconds: options.durationSeconds,
+                tone: options.tone,
+                calculateScores: options.calculateScores ?? true,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Variant generation failed' }));
+            throw new Error(error.error || `API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<VariantGenerationResult> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Variant generation failed');
+        }
+
+        return data.data as VariantGenerationResult;
+    },
+};
+
+/**
+ * AI Metrics API client
+ */
+export const metricsApi = {
+    /**
+     * Get AI operation metrics
+     */
+    async getMetrics(since?: number): Promise<AIMetricsResponse> {
+        const params = since ? `?since=${since}` : '';
+        const response = await fetch(`${API_BASE}/ai/metrics${params}`);
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Failed to fetch metrics' }));
+            throw new Error(error.error || `API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<AIMetricsResponse> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to fetch metrics');
+        }
+
+        return data.data as AIMetricsResponse;
+    },
+};

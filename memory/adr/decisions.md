@@ -157,4 +157,106 @@ Atomic Design pattern: `atoms/`, `molecules/`, `organisms/`
 
 ---
 
+## ADR-020: Local-First Analytics (No Auth)
+
+**Status**: ✅ Accepted  
+**Date**: 2026-01-24  
+**Phase**: 18
+
+### Context
+Analytics ve rating sistemi için backend authentication vs local storage seçimi.
+
+### Decision
+IndexedDB ve localStorage ile tamamen client-side analytics.
+
+### Rationale
+1. **Zero Backend Complexity**: Auth, database, API gereksiz
+2. **Privacy First**: Kullanıcı verisi server'a gönderilmiyor
+3. **Instant Availability**: Network latency yok
+4. **Export Option**: Kullanıcı isterse JSON export edebilir
+
+### Consequences
+- ✅ Fast implementation
+- ✅ No server costs
+- ⚠️ Data not synced across devices
+- ⚠️ Lost if browser data cleared
+
+---
+
+## ADR-021: IndexedDB for Complex Data
+
+**Status**: ✅ Accepted  
+**Date**: 2026-01-24  
+**Phase**: 17-18
+
+### Context
+Script history ve ratings için localStorage vs IndexedDB seçimi.
+
+### Decision
+- **localStorage**: Simple key-value (favorites, analytics counters)
+- **IndexedDB**: Complex objects with indexes (scripts, ratings)
+
+### Rationale
+1. **Size Limits**: localStorage ~5MB, IndexedDB ~50MB+
+2. **Indexing**: IndexedDB supports secondary indexes
+3. **Async API**: Non-blocking for large data
+
+### Consequences
+- ✅ Scalable storage
+- ✅ Fast queries by index
+- ⚠️ More complex API
+
+---
+
+## ADR-022: GitHub Actions CI/CD
+
+**Status**: ✅ Accepted  
+**Date**: 2026-01-24  
+**Phase**: 16
+
+### Context
+CI/CD pipeline seçimi: GitHub Actions vs Jenkins vs CircleCI.
+
+### Decision
+GitHub Actions with pnpm monorepo support.
+
+### Rationale
+1. **Native Integration**: GitHub repo ile entegre
+2. **Free Tier**: Public repos için ücretsiz
+3. **pnpm Support**: First-class pnpm action
+4. **Matrix Builds**: Multiple Node versions test edilebilir
+
+### Consequences
+- ✅ Quick setup
+- ✅ No external service
+- ⚠️ GitHub lock-in
+
+---
+
+## ADR-023: Generic Type Bridge Pattern
+
+**Status**: ✅ Accepted  
+**Date**: 2026-01-24  
+**Phase**: 15
+
+### Context
+Circular dependency between `types.ts` and `platformTypes.ts` for variant/iteration types.
+
+### Decision
+- Generic types in `types.ts`: `ScriptVariant<TScript = unknown>`
+- Concrete aliases in `platformTypes.ts`: `type PlatformScriptVariant = ScriptVariant<PlatformScript>`
+
+### Rationale
+1. **Avoids Circular Import**: types.ts doesn't import platformTypes.ts
+2. **Type Safety**: Full typing preserved at usage site
+3. **Extensibility**: New script types can use same generics
+
+### Consequences
+- ✅ Clean separation
+- ✅ No runtime overhead
+- ⚠️ Slightly more verbose type usage
+
+---
+
 *New ADRs should be added chronologically with incrementing numbers.*
+

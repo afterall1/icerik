@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@types/*"
+      types:
+        patterns:
+          - "@types/*"
+    open-pull-requests-limit: 5

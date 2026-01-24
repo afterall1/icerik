@@ -814,3 +814,29 @@ export const PLATFORM_EDUCATION: Record<Platform, PlatformEducation> = {
         ],
     },
 };
+
+// ============================================================
+// Phase 15: Concrete Type Aliases with PlatformScript
+// ============================================================
+
+import type {
+    ScriptVariant as GenericScriptVariant,
+    IterationRequest as GenericIterationRequest,
+    IterationResult as GenericIterationResult,
+} from './types.js';
+
+/**
+ * ScriptVariant with PlatformScript type
+ */
+export type ScriptVariantWithScript = GenericScriptVariant<PlatformScript>;
+
+/**
+ * IterationRequest with PlatformScript type
+ */
+export type IterationRequestWithScript = GenericIterationRequest<PlatformScript>;
+
+/**
+ * IterationResult with PlatformScript type
+ */
+export type IterationResultWithScript = GenericIterationResult<PlatformScript>;
+

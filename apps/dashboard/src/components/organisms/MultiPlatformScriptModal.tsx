@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useMultiPlatformScripts, useRetryFailedPlatforms } from '../../lib/hooks';
+import { useMultiPlatformScripts, useRetryFailedPlatforms, useBatchScoreScripts } from '../../lib/hooks';
 import { Button, Card } from '../atoms';
 import { PlatformScriptCard } from '../molecules';
 import type { TrendData, Platform, MultiPlatformOptions } from '../../lib/api';
@@ -140,16 +140,41 @@ export function MultiPlatformScriptModal({ trend, isOpen, onClose }: MultiPlatfo
         isPending: isRetrying,
     } = useRetryFailedPlatforms();
 
+    // Batch scoring hook for auto-score after generation
+    const {
+        mutate: batchScore,
+        data: scoreResults,
+        isPending: isScoring,
+        reset: resetScores,
+    } = useBatchScoreScripts();
+
     // Reset on open with smart duration default
     useEffect(() => {
         if (isOpen) {
             reset();
+            resetScores();
             setSelectedPlatforms(new Set(ALL_PLATFORMS));
             // Set smart default duration based on all platforms
             const smartDuration = getSmartDefaultDuration([...ALL_PLATFORMS]);
             setOptions(prev => ({ ...prev, durationSeconds: smartDuration }));
         }
-    }, [isOpen, reset]);
+    }, [isOpen, reset, resetScores]);
+
+    // Auto-score scripts after successful generation
+    useEffect(() => {
+        if (result && result.metadata.successCount > 0) {
+            // Collect successful scripts for batch scoring
+            const successfulScripts = Object.values(result.results)
+                .filter((r): r is Extract<typeof r, { success: true }> =>
+                    r !== undefined && r.success === true
+                )
+                .map(r => r.script);
+
+            if (successfulScripts.length > 0) {
+                batchScore(successfulScripts);
+            }
+        }
+    }, [result, batchScore]);
 
     // Update duration when platforms change
     useEffect(() => {
@@ -431,15 +456,22 @@ export function MultiPlatformScriptModal({ trend, isOpen, onClose }: MultiPlatfo
 
                             {/* Platform Cards Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {ALL_PLATFORMS.filter((p) => selectedPlatforms.has(p)).map((platform) => (
-                                    <PlatformScriptCard
-                                        key={platform}
-                                        platform={platform}
-                                        result={result.results[platform]}
-                                        isLoading={false}
-                                        onRetry={handleRetry}
-                                    />
-                                ))}
+                                {ALL_PLATFORMS.filter((p) => selectedPlatforms.has(p)).map((platform) => {
+                                    const platformScore = scoreResults?.get(platform);
+                                    return (
+                                        <PlatformScriptCard
+                                            key={platform}
+                                            platform={platform}
+                                            result={result.results[platform]}
+                                            isLoading={false}
+                                            onRetry={handleRetry}
+                                            algorithmScore={platformScore?.algorithmScore}
+                                            viralLabel={platformScore?.viralPotential}
+                                            isScoreLoading={isScoring}
+                                            showIterationPanel={true}
+                                        />
+                                    );
+                                })}
                             </div>
                         </>
                     ) : isPending ? (
