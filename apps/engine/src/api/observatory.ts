@@ -4,6 +4,9 @@
  * Provides endpoints for the Project Observatory dashboard.
  * Returns project metrics, AI prompts, architecture data, and health info.
  * 
+ * AUTO-UPDATE: All data is parsed from memory files at runtime.
+ * No manual updates needed - just run /memory-sync workflow.
+ * 
  * @module api/observatory
  */
 
@@ -12,7 +15,19 @@ import { readFile, readdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createChildLogger } from '../utils/logger.js';
-import { SUBREDDIT_CONFIG, CATEGORY_LABELS, ALL_PLATFORMS, PLATFORM_LABELS } from '@icerik/shared';
+import { SUBREDDIT_CONFIG, CATEGORY_LABELS, ALL_PLATFORMS } from '@icerik/shared';
+import {
+    getRoadmapData,
+    getADRData,
+    getEndpointsData,
+    getArchitectureData,
+    getProjectMetadata,
+    getFutureIdeas,
+    type ParsedPhase,
+    type ParsedADR,
+    type ParsedEndpoint,
+    type ParsedSystem,
+} from './memoryParser.js';
 
 const logger = createChildLogger('observatory');
 
@@ -35,6 +50,7 @@ interface ObservatoryMetrics {
     totalSubreddits: number;
     knowledgeFiles: number;
     lastUpdate: string;
+    autoUpdated: boolean;
 }
 
 /**
@@ -58,40 +74,6 @@ interface EmbeddedPrompt {
     name: string;
     type: 'category' | 'tone' | 'language' | 'few-shot';
     entries: { key: string; value: string }[];
-}
-
-/**
- * Architecture data
- */
-interface ArchitectureData {
-    systems: {
-        name: string;
-        description: string;
-        docFile: string;
-        status: 'active' | 'planned';
-    }[];
-    adrs: {
-        id: string;
-        title: string;
-        status: 'accepted' | 'deprecated' | 'proposed';
-        summary: string;
-    }[];
-    components: {
-        backend: string[];
-        frontend: string[];
-        shared: string[];
-    };
-}
-
-/**
- * API Endpoint documentation
- */
-interface EndpointDoc {
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
-    path: string;
-    description: string;
-    phase: number;
-    category: string;
 }
 
 /**
@@ -123,31 +105,42 @@ export function createObservatoryRouter(): Hono {
 
     /**
      * GET /api/observatory/metrics
-     * Returns project overview metrics
+     * Returns project overview metrics - AUTO-UPDATED from memory files
      */
     observatory.get('/metrics', async (c) => {
         try {
+            // Get data from memory parsers (cached)
+            const [metadata, phases, endpoints] = await Promise.all([
+                getProjectMetadata(),
+                getRoadmapData(),
+                getEndpointsData(),
+            ]);
+
             // Count knowledge files
             let knowledgeFileCount = 0;
             try {
                 const platformFiles = await readdir(join(AI_KNOWLEDGE_PATH, 'platforms'));
                 const patternFiles = await readdir(join(AI_KNOWLEDGE_PATH, 'content-patterns'));
-                knowledgeFileCount = platformFiles.length + patternFiles.length;
+                knowledgeFileCount = platformFiles.filter(f => f.endsWith('.md')).length +
+                    patternFiles.filter(f => f.endsWith('.md')).length;
             } catch {
                 knowledgeFileCount = 6; // Default known count
             }
 
+            const completedPhases = phases.filter(p => p.status === 'complete').length;
+
             const metrics: ObservatoryMetrics = {
-                version: '1.14.0',
+                version: metadata.version,
                 projectName: 'İçerik Trend Engine',
-                totalPhases: 18,
-                completedPhases: 18,
-                totalEndpoints: 21,
+                totalPhases: phases.length,
+                completedPhases,
+                totalEndpoints: endpoints.length,
                 totalPlatforms: ALL_PLATFORMS.length,
                 totalCategories: Object.keys(CATEGORY_LABELS).length,
                 totalSubreddits: SUBREDDIT_CONFIG.length,
                 knowledgeFiles: knowledgeFileCount,
-                lastUpdate: '2026-01-24T03:30:00+03:00',
+                lastUpdate: metadata.lastUpdate,
+                autoUpdated: true, // Flag to indicate this is auto-updated
             };
 
             return c.json({
@@ -173,51 +166,63 @@ export function createObservatoryRouter(): Hono {
         try {
             const prompts: AIPrompt[] = [];
 
-            // Platform knowledge files
-            const platformFiles = [
-                { file: 'platforms/tiktok-algorithm.md', name: 'TikTok Algoritma Bilgisi', desc: 'TikTok FYP algoritması, hook stratejileri, loop teknikleri' },
-                { file: 'platforms/instagram-reels.md', name: 'Instagram Reels Bilgisi', desc: 'Reels Explore algoritması, share/save optimizasyonu' },
-                { file: 'platforms/youtube-shorts.md', name: 'YouTube Shorts Bilgisi', desc: 'Shorts algoritması, retention, abone dönüşümü' },
-            ];
+            // Dynamically discover platform knowledge files
+            try {
+                const platformDir = join(AI_KNOWLEDGE_PATH, 'platforms');
+                const platformFiles = await readdir(platformDir);
 
-            for (const pf of platformFiles) {
-                const content = await readKnowledgeFile(pf.file);
-                if (content) {
-                    prompts.push({
-                        id: pf.file.replace(/[/.]/g, '_'),
-                        name: pf.name,
-                        category: 'platform',
-                        description: pf.desc,
-                        content: content,
-                        source: `ai/knowledge/${pf.file}`,
-                        wordCount: countWords(content),
-                    });
+                for (const file of platformFiles) {
+                    if (!file.endsWith('.md')) continue;
+                    const content = await readKnowledgeFile(`platforms/${file}`);
+                    if (content) {
+                        // Extract title from first heading
+                        const titleMatch = content.match(/^# (.+)/m);
+                        const name = titleMatch ? titleMatch[1].trim() : file.replace('.md', '');
+
+                        prompts.push({
+                            id: `platforms_${file.replace('.md', '')}`,
+                            name,
+                            category: 'platform',
+                            description: `Platform algorithm knowledge for ${name}`,
+                            content,
+                            source: `ai/knowledge/platforms/${file}`,
+                            wordCount: countWords(content),
+                        });
+                    }
                 }
+            } catch (error) {
+                logger.warn({ error }, 'Failed to read platform files');
             }
 
-            // Content pattern files
-            const patternFiles = [
-                { file: 'content-patterns/viral-hooks.md', name: 'Viral Hook Şablonları', desc: 'Dikkat çekici açılış cümleleri ve pattern interrupt teknikleri' },
-                { file: 'content-patterns/cta-templates.md', name: 'CTA Şablonları', desc: 'Platform-spesifik call-to-action şablonları' },
-                { file: 'content-patterns/script-structures.md', name: 'Script Yapıları', desc: 'Farklı içerik formatları için script yapıları' },
-            ];
+            // Dynamically discover content pattern files
+            try {
+                const patternDir = join(AI_KNOWLEDGE_PATH, 'content-patterns');
+                const patternFiles = await readdir(patternDir);
 
-            for (const pf of patternFiles) {
-                const content = await readKnowledgeFile(pf.file);
-                if (content) {
-                    prompts.push({
-                        id: pf.file.replace(/[/.]/g, '_'),
-                        name: pf.name,
-                        category: 'content-pattern',
-                        description: pf.desc,
-                        content: content,
-                        source: `ai/knowledge/${pf.file}`,
-                        wordCount: countWords(content),
-                    });
+                for (const file of patternFiles) {
+                    if (!file.endsWith('.md')) continue;
+                    const content = await readKnowledgeFile(`content-patterns/${file}`);
+                    if (content) {
+                        // Extract title from first heading
+                        const titleMatch = content.match(/^# (.+)/m);
+                        const name = titleMatch ? titleMatch[1].trim() : file.replace('.md', '');
+
+                        prompts.push({
+                            id: `patterns_${file.replace('.md', '')}`,
+                            name,
+                            category: 'content-pattern',
+                            description: `Content pattern: ${name}`,
+                            content,
+                            source: `ai/knowledge/content-patterns/${file}`,
+                            wordCount: countWords(content),
+                        });
+                    }
                 }
+            } catch (error) {
+                logger.warn({ error }, 'Failed to read pattern files');
             }
 
-            // Embedded prompts summary (from code)
+            // Embedded prompts summary (from code - these are truly embedded)
             const embeddedPrompts: EmbeddedPrompt[] = [
                 {
                     id: 'category_prompts',
@@ -279,6 +284,7 @@ export function createObservatoryRouter(): Hono {
                         totalEmbeddedTypes: embeddedPrompts.length,
                         totalWords: prompts.reduce((sum, p) => sum + p.wordCount, 0),
                     },
+                    autoUpdated: true,
                 },
                 timestamp: new Date().toISOString(),
             });
@@ -294,90 +300,58 @@ export function createObservatoryRouter(): Hono {
 
     /**
      * GET /api/observatory/endpoints
-     * Returns API endpoint documentation
+     * Returns API endpoint documentation - AUTO-UPDATED from endpoints.md
      */
-    observatory.get('/endpoints', (c) => {
-        const endpoints: EndpointDoc[] = [
-            // Core
-            { method: 'GET', path: '/api/health', description: 'Sistem sağlık kontrolü', phase: 1, category: 'Core' },
-            { method: 'GET', path: '/api/categories', description: 'Tüm kategorileri listele', phase: 1, category: 'Core' },
-            { method: 'GET', path: '/api/subreddits', description: 'Subreddit\'leri listele', phase: 1, category: 'Core' },
-            { method: 'GET', path: '/api/trends', description: 'Trend verilerini getir', phase: 1, category: 'Core' },
-            { method: 'GET', path: '/api/status', description: 'Engine durumu', phase: 2, category: 'Core' },
-            { method: 'GET', path: '/api/summary', description: 'Trend özeti', phase: 2, category: 'Core' },
-            // Cache
-            { method: 'GET', path: '/api/cache/stats', description: 'Cache istatistikleri', phase: 3, category: 'Cache' },
-            { method: 'POST', path: '/api/cache/clear', description: 'Cache temizle', phase: 3, category: 'Cache' },
-            { method: 'POST', path: '/api/cache/warm', description: 'Cache ısıt', phase: 3, category: 'Cache' },
-            // Worker
-            { method: 'GET', path: '/api/worker/status', description: 'Worker durumu', phase: 4, category: 'Worker' },
-            { method: 'POST', path: '/api/worker/trigger', description: 'Worker tetikle', phase: 4, category: 'Worker' },
-            // AI Content
-            { method: 'POST', path: '/api/generate-script', description: 'Tek platform script üret', phase: 10, category: 'AI Content' },
-            { method: 'POST', path: '/api/generate-scripts', description: 'Multi-platform script üret', phase: 11, category: 'AI Content' },
-            { method: 'POST', path: '/api/generate-scripts/retry', description: 'Başarısız platformları tekrar dene', phase: 11, category: 'AI Content' },
-            { method: 'GET', path: '/api/platforms', description: 'Platform listesi ve özellikleri', phase: 11, category: 'AI Content' },
-            { method: 'GET', path: '/api/platforms/:platform/tips', description: 'Platform optimizasyon ipuçları', phase: 11, category: 'AI Content' },
-            // Trend Intelligence
-            { method: 'POST', path: '/api/trends/:id/classify', description: 'Trend sınıflandır', phase: 14, category: 'Intelligence' },
-            { method: 'POST', path: '/api/scripts/score', description: 'Script viral puanı', phase: 14, category: 'Intelligence' },
-            // AI Quality
-            { method: 'GET', path: '/api/ai/metrics', description: 'AI operasyon metrikleri', phase: 15, category: 'AI Quality' },
-            { method: 'POST', path: '/api/scripts/iterate', description: 'Script bölümü yeniden üret', phase: 15, category: 'AI Quality' },
-            { method: 'POST', path: '/api/generate-script-variants', description: 'A/B test varyantları', phase: 15, category: 'AI Quality' },
-        ];
+    observatory.get('/endpoints', async (c) => {
+        try {
+            const endpoints = await getEndpointsData();
 
-        const grouped = endpoints.reduce((acc, ep) => {
-            if (!acc[ep.category]) {
-                acc[ep.category] = [];
-            }
-            acc[ep.category].push(ep);
-            return acc;
-        }, {} as Record<string, EndpointDoc[]>);
+            const grouped = endpoints.reduce((acc, ep) => {
+                if (!acc[ep.category]) {
+                    acc[ep.category] = [];
+                }
+                acc[ep.category].push(ep);
+                return acc;
+            }, {} as Record<string, ParsedEndpoint[]>);
 
-        return c.json({
-            success: true,
-            data: {
-                endpoints,
-                grouped,
-                summary: {
-                    total: endpoints.length,
-                    byCategory: Object.fromEntries(
-                        Object.entries(grouped).map(([k, v]) => [k, v.length])
-                    ),
+            return c.json({
+                success: true,
+                data: {
+                    endpoints,
+                    grouped,
+                    summary: {
+                        total: endpoints.length,
+                        byCategory: Object.fromEntries(
+                            Object.entries(grouped).map(([k, v]) => [k, v.length])
+                        ),
+                    },
+                    autoUpdated: true,
                 },
-            },
-            timestamp: new Date().toISOString(),
-        });
+                timestamp: new Date().toISOString(),
+            });
+        } catch (error) {
+            logger.error({ error }, 'Failed to get observatory endpoints');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
     });
 
     /**
      * GET /api/observatory/architecture
-     * Returns architecture documentation
+     * Returns architecture documentation - AUTO-UPDATED from memory/architecture/
      */
-    observatory.get('/architecture', (c) => {
-        const architecture: ArchitectureData = {
-            systems: [
-                { name: 'Caching Layer', description: 'SQLite tabanlı trend cache sistemi', docFile: 'caching.md', status: 'active' },
-                { name: 'Background Worker', description: 'Tier-based Reddit polling sistemi', docFile: 'worker.md', status: 'active' },
-                { name: 'Multi-Agent System', description: 'Platform-specific AI agent\'ları (TikTok/Reels/Shorts)', docFile: 'multi-agent.md', status: 'active' },
-                { name: 'Knowledge System', description: 'Native Gemini education sistemi', docFile: 'knowledge-system.md', status: 'active' },
-                { name: 'AI Quality Pipeline', description: 'Metrics, Iterator, Variant Generator modülleri', docFile: 'ai-quality.md', status: 'active' },
-                { name: 'Local Storage', description: 'Browser-native persistence (favorites, history, analytics)', docFile: 'local-storage.md', status: 'active' },
-            ],
-            adrs: [
-                { id: 'ADR-001', title: 'SQLite over Redis', status: 'accepted', summary: 'MVP için SQLite tercih edildi' },
-                { id: 'ADR-002', title: 'Public .json Endpoints', status: 'accepted', summary: 'Reddit API için public endpoints' },
-                { id: 'ADR-003', title: 'NES Algorithm', status: 'accepted', summary: 'Normalized Engagement Score formülü' },
-                { id: 'ADR-004', title: 'Tier-Based Polling', status: 'accepted', summary: 'Subreddit tier\'larına göre polling' },
-                { id: 'ADR-005', title: 'Dynamic AI Import', status: 'accepted', summary: 'AI modüllerini lazy load et' },
-                { id: 'ADR-006', title: 'Atomic Design', status: 'accepted', summary: 'Dashboard component yapısı' },
-                { id: 'ADR-020', title: 'Local-First Analytics', status: 'accepted', summary: 'Auth gerektirmeyen client-side analytics' },
-                { id: 'ADR-021', title: 'IndexedDB + localStorage', status: 'accepted', summary: 'Data tipine göre storage seçimi' },
-                { id: 'ADR-022', title: 'GitHub Actions CI/CD', status: 'accepted', summary: 'pnpm ile automated deployment' },
-                { id: 'ADR-023', title: 'Generic Type Bridge', status: 'accepted', summary: 'Circular dependency önleme pattern\'i' },
-            ],
-            components: {
+    observatory.get('/architecture', async (c) => {
+        try {
+            const [systems, adrs] = await Promise.all([
+                getArchitectureData(),
+                getADRData(),
+            ]);
+
+            // Component structure (this is relatively static)
+            const components = {
                 backend: [
                     'apps/engine/src/api/ - Hono REST API',
                     'apps/engine/src/cache/ - SQLite cache layer',
@@ -387,7 +361,7 @@ export function createObservatoryRouter(): Hono {
                     'apps/engine/src/worker/ - Background polling',
                 ],
                 frontend: [
-                    'apps/dashboard/src/pages/ - Main pages (TrendExplorer, UnifiedDashboard)',
+                    'apps/dashboard/src/pages/ - Main pages',
                     'apps/dashboard/src/components/ - Atomic Design components',
                     'apps/dashboard/src/stores/ - Zustand state management',
                     'apps/dashboard/src/lib/ - API clients and hooks',
@@ -397,64 +371,68 @@ export function createObservatoryRouter(): Hono {
                     'packages/shared/src/platformTypes.ts - Platform-specific types',
                     'packages/shared/src/constants.ts - Subreddit config, category labels',
                 ],
-            },
-        };
+            };
 
-        return c.json({
-            success: true,
-            data: architecture,
-            timestamp: new Date().toISOString(),
-        });
+            return c.json({
+                success: true,
+                data: {
+                    systems,
+                    adrs,
+                    components,
+                    autoUpdated: true,
+                },
+                timestamp: new Date().toISOString(),
+            });
+        } catch (error) {
+            logger.error({ error }, 'Failed to get observatory architecture');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
     });
 
     /**
      * GET /api/observatory/roadmap
-     * Returns roadmap and feature status
+     * Returns roadmap and feature status - AUTO-UPDATED from roadmap.md
      */
-    observatory.get('/roadmap', (c) => {
-        const phases = [
-            { phase: 1, name: 'Core API', status: 'complete', features: ['Health endpoint', 'Categories', 'Subreddits', 'Trends'] },
-            { phase: 2, name: 'Status & Summary', status: 'complete', features: ['Engine status', 'Trend summary'] },
-            { phase: 3, name: 'Caching Layer', status: 'complete', features: ['SQLite cache', 'Cache stats', 'Cache management'] },
-            { phase: 4, name: 'Background Worker', status: 'complete', features: ['Tier-based polling', 'Worker status'] },
-            { phase: 5, name: 'NES Algorithm', status: 'complete', features: ['Engagement velocity', 'Controversy factor'] },
-            { phase: 6, name: 'Dashboard UI', status: 'complete', features: ['Category grid', 'Trend cards', 'Filters'] },
-            { phase: 7, name: 'React Query', status: 'complete', features: ['Data fetching', 'Caching', 'Loading states'] },
-            { phase: 8, name: 'Zustand State', status: 'complete', features: ['Filter store', 'State management'] },
-            { phase: 9, name: 'Error Handling', status: 'complete', features: ['Error boundaries', 'Retry logic'] },
-            { phase: 10, name: 'AI Script Generation', status: 'complete', features: ['Gemini integration', 'Script generator'] },
-            { phase: 11, name: 'Multi-Platform Agents', status: 'complete', features: ['TikTok/Reels/Shorts agents', 'Orchestrator'] },
-            { phase: 12, name: 'Supervisor Agent', status: 'complete', features: ['Validation', 'Retry loop', 'Quality assurance'] },
-            { phase: 13, name: 'Knowledge System', status: 'complete', features: ['Platform knowledge', 'Content patterns'] },
-            { phase: 14, name: 'Trend Intelligence', status: 'complete', features: ['Trend classification', 'Algorithm scoring'] },
-            { phase: 15, name: 'AI Quality Enhancement', status: 'complete', features: ['AIMetrics', 'Script iterator', 'Variant generator'] },
-            { phase: 16, name: 'CI/CD', status: 'complete', features: ['GitHub Actions', 'Deployment automation'] },
-            { phase: 17, name: 'Content Management', status: 'complete', features: ['Favorites', 'History', 'Export'] },
-            { phase: 18, name: 'Advanced Analytics', status: 'complete', features: ['Script rating', 'Analytics dashboard'] },
-        ];
+    observatory.get('/roadmap', async (c) => {
+        try {
+            const [phases, futureIdeas] = await Promise.all([
+                getRoadmapData(),
+                getFutureIdeas(),
+            ]);
 
-        const futureIdeas = [
-            'ML-based NES optimization',
-            'Real-time trending alerts (WebSocket)',
-            'Content performance tracking',
-            'Team collaboration features',
-            'Multi-platform API integration (X/Twitter, TikTok API)',
-        ];
+            const completed = phases.filter(p => p.status === 'complete').length;
+            const inProgress = phases.filter(p => p.status === 'in-progress').length;
+            const completionPercentage = phases.length > 0
+                ? Math.round((completed / phases.length) * 100)
+                : 0;
 
-        return c.json({
-            success: true,
-            data: {
-                phases,
-                futureIdeas,
-                summary: {
-                    totalPhases: phases.length,
-                    completed: phases.filter(p => p.status === 'complete').length,
-                    inProgress: phases.filter(p => p.status === 'in-progress').length,
-                    completionPercentage: 100,
+            return c.json({
+                success: true,
+                data: {
+                    phases,
+                    futureIdeas,
+                    summary: {
+                        totalPhases: phases.length,
+                        completed,
+                        inProgress,
+                        completionPercentage,
+                    },
+                    autoUpdated: true,
                 },
-            },
-            timestamp: new Date().toISOString(),
-        });
+                timestamp: new Date().toISOString(),
+            });
+        } catch (error) {
+            logger.error({ error }, 'Failed to get observatory roadmap');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
     });
 
     return observatory;

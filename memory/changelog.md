@@ -6,6 +6,38 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.16.0] - 2026-01-24
+
+### 🔄 Observatory Auto-Update (Phase 19.1)
+
+Observatory artık memory dosyalarından otomatik güncelleniyor.
+
+### Added
+- **memoryParser.ts** (`apps/engine/src/api/memoryParser.ts`)
+  - `getRoadmapData()` - Parse `roadmap.md` → phases[]
+  - `getADRData()` - Parse `decisions.md` → adrs[]
+  - `getEndpointsData()` - Parse `endpoints.md` → endpoints[]
+  - `getArchitectureData()` - Scan `architecture/` → systems[]
+  - `getProjectMetadata()` - Extract version from `changelog.md`
+  - `getFutureIdeas()` - Parse future ideas from `roadmap.md`
+  - 5-minute in-memory caching for all parsers
+
+### Changed
+- **observatory.ts** - Refactored to use memoryParser instead of hardcoded data
+  - `/api/observatory/metrics` → Auto-updated from memory files
+  - `/api/observatory/endpoints` → Parsed from `endpoints.md`
+  - `/api/observatory/architecture` → Parsed from `architecture/` + `decisions.md`
+  - `/api/observatory/roadmap` → Parsed from `roadmap.md`
+  - `/api/observatory/prompts` → Dynamic discovery of knowledge files
+
+### Technical
+- Zero manual updates needed after `/memory-sync`
+- Added `autoUpdated: true` flag to all API responses
+- 5-minute cache TTL for performance
+
+---
+
+
 ## [1.15.0] - 2026-01-24
 
 ### 🔭 Project Observatory (Phase 19)
