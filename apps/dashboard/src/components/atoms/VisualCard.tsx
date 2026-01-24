@@ -16,12 +16,27 @@ interface VisualCardProps {
     image: ValidatedImage;
     /** Optional click handler */
     onClick?: () => void;
+    /** Whether this image is selected */
+    isSelected?: boolean;
+    /** Selection order number (1 or 2) */
+    selectionOrder?: number;
+    /** Callback when select button is clicked */
+    onSelect?: () => void;
+    /** Whether selection is disabled (section full and not selected) */
+    selectionDisabled?: boolean;
 }
 
 /**
  * VisualCard - Individual image card with preview and validation status
  */
-export function VisualCard({ image, onClick }: VisualCardProps) {
+export function VisualCard({
+    image,
+    onClick,
+    isSelected = false,
+    selectionOrder = 0,
+    onSelect,
+    selectionDisabled = false,
+}: VisualCardProps) {
     const [isLoaded, setIsLoaded] = useState(false);
     const [showFullscreen, setShowFullscreen] = useState(false);
     const [imageError, setImageError] = useState(false);
@@ -45,13 +60,23 @@ export function VisualCard({ image, onClick }: VisualCardProps) {
         setShowFullscreen(true);
     }, []);
 
+    const handleSelect = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onSelect && !selectionDisabled) {
+            onSelect();
+        }
+    }, [onSelect, selectionDisabled]);
+
     const isClean = image.validation?.isClean ?? true;
     const hasText = image.validation?.hasText ?? false;
 
     return (
         <>
             <div
-                className="group relative bg-slate-800 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 hover:ring-2 hover:ring-indigo-500/50"
+                className={`group relative bg-slate-800 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${isSelected
+                    ? 'ring-2 ring-green-500 ring-offset-2 ring-offset-slate-900'
+                    : 'hover:ring-2 hover:ring-indigo-500/50'
+                    }`}
                 onClick={onClick}
             >
                 {/* Loading skeleton */}
@@ -96,6 +121,13 @@ export function VisualCard({ image, onClick }: VisualCardProps) {
                     ) : null}
                 </div>
 
+                {/* Selection Order Badge */}
+                {isSelected && selectionOrder > 0 && (
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+                        <span className="text-white text-xs font-bold">{selectionOrder}</span>
+                    </div>
+                )}
+
                 {/* Hover Actions */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button
@@ -112,6 +144,22 @@ export function VisualCard({ image, onClick }: VisualCardProps) {
                     >
                         <Download className="w-4 h-4 text-white" />
                     </button>
+                    {/* Select Button */}
+                    {onSelect && (
+                        <button
+                            onClick={handleSelect}
+                            className={`p-2 rounded-full transition-colors ${isSelected
+                                    ? 'bg-green-500 hover:bg-green-600'
+                                    : selectionDisabled
+                                        ? 'bg-slate-500/50 cursor-not-allowed'
+                                        : 'bg-white/20 hover:bg-indigo-500'
+                                }`}
+                            title={isSelected ? 'Seçildi' : selectionDisabled ? 'Maksimum seçim' : 'Seç'}
+                            disabled={selectionDisabled && !isSelected}
+                        >
+                            <Check className={`w-4 h-4 ${isSelected ? 'text-white' : selectionDisabled ? 'text-slate-400' : 'text-white'}`} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Photographer Credit */}

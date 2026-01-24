@@ -33,6 +33,14 @@ interface VisualDiscoveryPanelProps {
     category?: string;
     /** Optional callback when image is selected */
     onImageSelect?: (image: ValidatedImage) => void;
+    /** Function to check if an image is selected */
+    isImageSelected?: (imageId: string) => boolean;
+    /** Function to get selection order for an image */
+    getSelectionOrder?: (imageId: string) => number;
+    /** Whether the section is full (max selections reached) */
+    isSectionFull?: boolean;
+    /** Current selection count for this section */
+    selectionCount?: number;
 }
 
 /**
@@ -72,6 +80,10 @@ export function VisualDiscoveryPanel({
     content,
     category = 'general',
     onImageSelect,
+    isImageSelected,
+    getSelectionOrder,
+    isSectionFull = false,
+    selectionCount = 0,
 }: VisualDiscoveryPanelProps) {
     const {
         images,
@@ -149,6 +161,11 @@ export function VisualDiscoveryPanel({
                         <div>
                             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                                 {SECTION_ICONS[sectionType]} {SECTION_LABELS[sectionType]} Görselleri
+                                {selectionCount > 0 && (
+                                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded-full">
+                                        {selectionCount}/2 seçili
+                                    </span>
+                                )}
                             </h2>
                             <p className="text-xs text-slate-400 line-clamp-1">
                                 {content.slice(0, 60)}...
@@ -247,13 +264,23 @@ export function VisualDiscoveryPanel({
 
                             {/* Grid */}
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {images.map((image) => (
-                                    <VisualCard
-                                        key={image.id}
-                                        image={image}
-                                        onClick={() => handleImageClick(image)}
-                                    />
-                                ))}
+                                {images.map((image) => {
+                                    const selected = isImageSelected?.(image.id) ?? false;
+                                    const order = getSelectionOrder?.(image.id) ?? 0;
+                                    const disabled = isSectionFull && !selected;
+
+                                    return (
+                                        <VisualCard
+                                            key={image.id}
+                                            image={image}
+                                            onClick={() => handleImageClick(image)}
+                                            isSelected={selected}
+                                            selectionOrder={order}
+                                            onSelect={onImageSelect ? () => onImageSelect(image) : undefined}
+                                            selectionDisabled={disabled}
+                                        />
+                                    );
+                                })}
                             </div>
                         </>
                     )}

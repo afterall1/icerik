@@ -7,7 +7,7 @@
  * @module components/molecules/PlatformScriptCard
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card } from '../atoms';
 import type { PlatformScriptResult, Platform, AlgorithmScore, ViralPotentialLabel, PlatformScript, IterationResult } from '../../lib/api';
 import { PLATFORM_LABELS, PLATFORM_ICONS, PLATFORM_COLORS } from '../../lib/api';
@@ -16,6 +16,10 @@ import { AlgorithmEducationPanel } from './AlgorithmEducationPanel';
 import { AlgorithmScoreCard, CompactScoreBadge } from './AlgorithmScoreCard';
 import { IterationPanel } from './IterationPanel';
 import { VisualDiscoveryPanel, type SectionType } from './VisualDiscoveryPanel';
+import { SelectedVisualsPreview } from './SelectedVisualsPreview';
+import { useVisualSelections } from '../../lib/useVisualSelections';
+import { generateScriptId, type SelectableSectionType } from '../../lib/selectedVisualsTypes';
+import type { ValidatedImage } from '../../lib/useVisualSearch';
 
 /**
  * Platform-optimal duration thresholds for warning display
@@ -45,6 +49,8 @@ interface PlatformScriptCardProps {
     onScriptUpdated?: (script: PlatformScript) => void;
     /** Whether to show iteration controls */
     showIterationPanel?: boolean;
+    /** Trend ID for visual selections */
+    trendId?: string;
 }
 
 /**
@@ -152,6 +158,7 @@ export function PlatformScriptCard({
     isScoreLoading,
     onScriptUpdated,
     showIterationPanel = false,
+    trendId = '',
 }: PlatformScriptCardProps) {
     const [copied, setCopied] = useState(false);
     const [iterationExpanded, setIterationExpanded] = useState(false);
@@ -163,6 +170,31 @@ export function PlatformScriptCard({
     const label = PLATFORM_LABELS[platform];
     const icon = PLATFORM_ICONS[platform];
     const colors = PLATFORM_COLORS[platform];
+
+    // Generate stable script ID for visual selections
+    const scriptId = useMemo(() => {
+        if (!result?.success) return null;
+        return generateScriptId(
+            result.script.metadata.trendId,
+            platform,
+            result.script.metadata.generatedAt
+        );
+    }, [result, platform]);
+
+    // Visual selections hook
+    const {
+        selections,
+        addSelection,
+        removeSelection,
+        isSelected,
+        getSelectionOrder,
+        isSectionFull,
+    } = useVisualSelections(
+        scriptId,
+        platform,
+        trendId,
+        result?.success ? result.script.title : ''
+    );
 
     // Handle visual discovery for a section
     const handleFindVisuals = useCallback((sectionType: SectionType, content: string) => {
@@ -176,6 +208,23 @@ export function PlatformScriptCard({
         setVisualPanelSection(null);
         setVisualPanelContent('');
     }, []);
+
+    // Handle image selection from visual panel
+    const handleImageSelect = useCallback(async (image: ValidatedImage) => {
+        if (!visualPanelSection) return;
+        const added = await addSelection(visualPanelSection as SelectableSectionType, image);
+        if (added) {
+            // Optional: close panel after max selections reached
+            if (isSectionFull(visualPanelSection as SelectableSectionType)) {
+                // Keep panel open but user can see it's full
+            }
+        }
+    }, [visualPanelSection, addSelection, isSectionFull]);
+
+    // Handle removing a selection
+    const handleRemoveSelection = useCallback(async (sectionType: SelectableSectionType, imageId: string) => {
+        await removeSelection(sectionType, imageId);
+    }, [removeSelection]);
 
     // Handle iteration result
     const handleIterationResult = useCallback((iterResult: IterationResult) => {
@@ -340,15 +389,26 @@ export function PlatformScriptCard({
                 {/* Sections */}
                 <div className="flex-1 p-3 space-y-2 overflow-y-auto">
                     {script.sections.hook && (
-                        <ScriptSection
-                            title="🎣 Hook"
-                            content={script.sections.hook.content}
-                            wordCount={script.sections.hook.wordCount}
-                            estimatedSeconds={script.sections.hook.estimatedSeconds}
-                            accentColor="border-amber-500"
-                            sectionType="hook"
-                            onFindVisuals={() => handleFindVisuals('hook', script.sections.hook!.content)}
-                        />
+                        <>
+                            <ScriptSection
+                                title="🎣 Hook"
+                                content={script.sections.hook.content}
+                                wordCount={script.sections.hook.wordCount}
+                                estimatedSeconds={script.sections.hook.estimatedSeconds}
+                                accentColor="border-amber-500"
+                                sectionType="hook"
+                                onFindVisuals={() => handleFindVisuals('hook', script.sections.hook!.content)}
+                            />
+                            {selections && selections.selections.hook.length > 0 && (
+                                <SelectedVisualsPreview
+                                    sectionType="hook"
+                                    selections={selections.selections.hook}
+                                    onRemove={(imageId) => handleRemoveSelection('hook', imageId)}
+                                    onAddMore={() => handleFindVisuals('hook', script.sections.hook!.content)}
+                                    isFull={isSectionFull('hook')}
+                                />
+                            )}
+                        </>
                     )}
                     <ScriptSection
                         title="📝 Body"
@@ -359,16 +419,36 @@ export function PlatformScriptCard({
                         sectionType="body"
                         onFindVisuals={() => handleFindVisuals('body', script.sections.body.content)}
                     />
-                    {script.sections.cta && (
-                        <ScriptSection
-                            title="📢 CTA"
-                            content={script.sections.cta.content}
-                            wordCount={script.sections.cta.wordCount}
-                            estimatedSeconds={script.sections.cta.estimatedSeconds}
-                            accentColor="border-green-500"
-                            sectionType="cta"
-                            onFindVisuals={() => handleFindVisuals('cta', script.sections.cta!.content)}
+                    {selections && selections.selections.body.length > 0 && (
+                        <SelectedVisualsPreview
+                            sectionType="body"
+                            selections={selections.selections.body}
+                            onRemove={(imageId) => handleRemoveSelection('body', imageId)}
+                            onAddMore={() => handleFindVisuals('body', script.sections.body.content)}
+                            isFull={isSectionFull('body')}
                         />
+                    )}
+                    {script.sections.cta && (
+                        <>
+                            <ScriptSection
+                                title="📢 CTA"
+                                content={script.sections.cta.content}
+                                wordCount={script.sections.cta.wordCount}
+                                estimatedSeconds={script.sections.cta.estimatedSeconds}
+                                accentColor="border-green-500"
+                                sectionType="cta"
+                                onFindVisuals={() => handleFindVisuals('cta', script.sections.cta!.content)}
+                            />
+                            {selections && selections.selections.cta.length > 0 && (
+                                <SelectedVisualsPreview
+                                    sectionType="cta"
+                                    selections={selections.selections.cta}
+                                    onRemove={(imageId) => handleRemoveSelection('cta', imageId)}
+                                    onAddMore={() => handleFindVisuals('cta', script.sections.cta!.content)}
+                                    isFull={isSectionFull('cta')}
+                                />
+                            )}
+                        </>
                     )}
                 </div>
 
@@ -482,6 +562,11 @@ export function PlatformScriptCard({
                     sectionType={visualPanelSection}
                     content={visualPanelContent}
                     category={script.metadata.category}
+                    onImageSelect={handleImageSelect}
+                    isImageSelected={(imageId) => isSelected(visualPanelSection as SelectableSectionType, imageId)}
+                    getSelectionOrder={(imageId) => getSelectionOrder(visualPanelSection as SelectableSectionType, imageId)}
+                    isSectionFull={isSectionFull(visualPanelSection as SelectableSectionType)}
+                    selectionCount={selections?.selections[visualPanelSection as SelectableSectionType]?.length ?? 0}
                 />
             )}
         </>
