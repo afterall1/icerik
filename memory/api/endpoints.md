@@ -97,7 +97,7 @@ Single platform script generation.
 
 ---
 
-### POST /api/generate-multi-platform (Phase 11)
+### POST /api/generate-scripts (Phase 11)
 
 Multi-platform script generation with platform agents.
 
@@ -105,11 +105,13 @@ Multi-platform script generation with platform agents.
 ```typescript
 {
     trend: TrendData;
-    options: {
-        platforms: ('tiktok' | 'reels' | 'shorts')[];
+    platforms?: ('tiktok' | 'reels' | 'shorts')[]; // Default: all
+    options?: {
         durationSeconds?: number;
         tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
         language?: 'tr' | 'en';
+        includeCta?: boolean;
+        includeHook?: boolean;
     };
 }
 ```
@@ -118,8 +120,68 @@ Multi-platform script generation with platform agents.
 ```typescript
 {
     success: boolean;
-    scripts: PlatformScript[];
-    errors: { platform: string; error: string }[];
+    data: {
+        trend: TrendData;
+        scripts: PlatformScript[];
+        errors: { platform: string; error: string }[];
+        summary: ComparisonSummary;
+    };
+}
+```
+
+---
+
+### POST /api/generate-scripts/retry (Phase 11)
+
+Retry failed platform generations from a previous result.
+
+**Request Body:**
+```typescript
+{
+    previousResult: GenerationResult;
+    options?: {
+        durationSeconds?: number;
+        tone?: 'casual' | 'professional' | 'humorous' | 'dramatic';
+        language?: 'en' | 'tr';
+    };
+}
+```
+
+---
+
+### GET /api/platforms (Phase 11)
+
+List all available platforms and their capabilities.
+
+**Response:**
+```typescript
+{
+    success: boolean;
+    data: {
+        id: Platform;
+        label: string;
+        algorithmFocus: PlatformAlgorithmFocus;
+        colors: { primary: string; gradient: string };
+    }[];
+}
+```
+
+---
+
+### GET /api/platforms/:platform/tips (Phase 11)
+
+Get platform-specific optimization tips.
+
+**Response:**
+```typescript
+{
+    success: boolean;
+    data: {
+        platform: Platform;
+        label: string;
+        algorithmFocus: PlatformAlgorithmFocus;
+        tips: string[];
+    };
 }
 ```
 

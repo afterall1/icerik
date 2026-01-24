@@ -2,7 +2,7 @@
 
 > **Package**: `@icerik/shared`  
 > **Location**: `packages/shared/src/types.ts`  
-> **Son Güncelleme**: 22 Ocak 2026
+> **Son Güncelleme**: 24 Ocak 2026
 
 ---
 
@@ -201,3 +201,130 @@ interface GeneratedScript {
     };
 }
 ```
+
+---
+
+## Trend Type (Phase 14)
+
+```typescript
+type TrendType =
+    | 'controversy'    // Hot takes, debates, divisive opinions
+    | 'breaking_news'  // Time-sensitive, just happened
+    | 'tutorial'       // How-to, step-by-step, tips
+    | 'story'          // Personal narrative, TIFU, relationship drama
+    | 'review'         // Product/media reviews, ratings
+    | 'discussion'     // Open-ended community discussions
+    | 'meme'           // Humor, jokes, viral moments
+    | 'announcement';  // Official releases, launches
+```
+
+---
+
+## Content Format (Phase 14)
+
+```typescript
+type ContentFormat =
+    | 'hot_take'       // Bold statement + defense
+    | 'urgency'        // Time-sensitive hook + facts
+    | 'step_by_step'   // Numbered list structure
+    | 'narrative_arc'  // Story with tension + resolution
+    | 'comparison'     // Pros/cons, before/after
+    | 'reaction'       // Opinion + audience engagement
+    | 'entertainment'; // Pure fun, humor-first
+```
+
+---
+
+## Trend Classification (Phase 14)
+
+```typescript
+interface TrendClassification {
+    trendType: TrendType;
+    confidence: number;         // 0-1 confidence score
+    recommendedFormat: ContentFormat;
+    formatRationale: string;    // Why this format was recommended
+    keywords: string[];         // Detected classification keywords
+}
+```
+
+---
+
+## Algorithm Score (Phase 14)
+
+```typescript
+interface AlgorithmScore {
+    hookStrength: number;           // 0-100
+    completionPotential: number;    // 0-100
+    engagementTriggers: number;     // 0-100
+    platformOptimization: number;   // 0-100
+    loopPotential: number;          // 0-100
+    overallScore: number;           // 0-100
+    breakdown: {
+        metric: string;
+        score: number;
+        feedback: string;
+    }[];
+    improvements: string[];
+}
+```
+
+---
+
+## Variant Style (Phase 15)
+
+```typescript
+type VariantStyle =
+    | 'high_energy'    // Fast-paced, quick cuts, dynamic
+    | 'story_driven'   // Narrative arc, emotional journey
+    | 'controversial'  // Debate-starter, hot take, opinion
+    | 'educational'    // Explainer, tutorial, informative
+    | 'reaction';      // Reaction-style, commentary, humor
+```
+
+---
+
+## Iteration Target (Phase 15)
+
+```typescript
+type IterationTarget =
+    | 'hook'        // Just the hook
+    | 'body'        // Just the body  
+    | 'cta'         // Just the CTA
+    | 'title'       // Just the title
+    | 'hashtags'    // Just hashtags
+    | 'shorten'     // Make 20% shorter
+    | 'lengthen'    // Make 20% longer
+    | 'change_tone' // Change tone
+    | 'add_hooks';  // Add more re-hooks
+```
+
+---
+
+## Script Variant (Phase 15)
+
+```typescript
+interface ScriptVariant<TScript = unknown> {
+    variantId: string;
+    style: VariantStyle;
+    script: TScript;
+    algorithmScore?: AlgorithmScore;
+    differentiator: string;
+}
+```
+
+---
+
+## Iteration Result (Phase 15)
+
+```typescript
+interface IterationResult<TScript = unknown> {
+    updatedScript: TScript;
+    changedSections: string[];
+    metadata: {
+        iterationType: IterationTarget;
+        tokensUsed: number;
+        durationMs: number;
+    };
+}
+```
+
