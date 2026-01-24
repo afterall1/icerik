@@ -337,3 +337,143 @@ A/B varyant scriptler üret.
 }
 ```
 
+---
+
+## 7. Observatory Endpoints
+
+**Phase 19**
+
+### GET /api/observatory/metrics
+
+Proje metrikleri döner.
+
+**Response:**
+```typescript
+{
+    version: string;
+    projectName: string;
+    totalPhases: number;
+    completedPhases: number;
+    totalEndpoints: number;
+    totalPlatforms: number;
+    totalCategories: number;
+    totalSubreddits: number;
+    knowledgeFiles: number;
+    lastUpdate: string;
+    autoUpdated: boolean;
+}
+```
+
+---
+
+### GET /api/observatory/prompts
+
+AI prompt envanteri döner.
+
+**Response:**
+```typescript
+{
+    knowledgePrompts: {
+        id: string;
+        name: string;
+        category: 'platform' | 'content-pattern';
+        description: string;
+        content: string;
+        source: string;
+        wordCount: number;
+    }[];
+    embeddedPrompts: {
+        id: string;
+        name: string;
+        type: 'category' | 'tone' | 'language' | 'few-shot';
+        entries: { key: string; value: string }[];
+    }[];
+    summary: {
+        totalKnowledgeFiles: number;
+        totalEmbeddedTypes: number;
+        totalWords: number;
+    };
+    autoUpdated: boolean;
+}
+```
+
+---
+
+### GET /api/observatory/endpoints
+
+API endpoint kataloğu döner (auto-updated from endpoints.md).
+
+**Response:**
+```typescript
+{
+    endpoints: {
+        method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+        path: string;
+        description: string;
+        phase: number;
+        category: string;
+    }[];
+    grouped: Record<string, Endpoint[]>;
+    summary: {
+        total: number;
+        byCategory: Record<string, number>;
+    };
+    autoUpdated: boolean;
+}
+```
+
+---
+
+### GET /api/observatory/architecture
+
+Mimari dokümantasyonu döner (auto-updated from memory/architecture/).
+
+**Response:**
+```typescript
+{
+    systems: {
+        name: string;
+        description: string;
+        docFile: string;
+        status: 'active' | 'planned';
+    }[];
+    adrs: {
+        id: string;
+        title: string;
+        status: 'accepted' | 'deprecated' | 'proposed';
+        summary: string;
+    }[];
+    components: {
+        backend: string[];
+        frontend: string[];
+        shared: string[];
+    };
+    autoUpdated: boolean;
+}
+```
+
+---
+
+### GET /api/observatory/roadmap
+
+Roadmap ve faz durumları döner (auto-updated from roadmap.md).
+
+**Response:**
+```typescript
+{
+    phases: {
+        phase: number;
+        name: string;
+        status: 'complete' | 'in-progress' | 'planned';
+        features: string[];
+    }[];
+    futureIdeas: string[];
+    summary: {
+        totalPhases: number;
+        completed: number;
+        inProgress: number;
+        completionPercentage: number;
+    };
+    autoUpdated: boolean;
+}
+```
