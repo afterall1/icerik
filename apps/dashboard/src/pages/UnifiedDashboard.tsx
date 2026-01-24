@@ -15,9 +15,14 @@ import { FilterSidebar } from '../components/organisms/FilterSidebar';
 import { CategoryTabs } from '../components/molecules/CategoryTabs';
 import { SearchBar } from '../components/molecules/SearchBar';
 import { TrendGrid } from '../components/organisms';
-import { Activity, RefreshCw, Sparkles, TrendingUp, Zap } from 'lucide-react';
+import { Activity, RefreshCw, Sparkles, TrendingUp, Zap, Telescope } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../components/atoms';
+
+// Navigation to Observatory
+const navigateToObservatory = () => {
+    window.location.hash = '/observatory';
+};
 
 // Custom hook for debounced value
 function useDebounce<T>(value: T, delay: number): T {
@@ -152,6 +157,17 @@ export function UnifiedDashboard() {
                         >
                             <RefreshCw className={`w-4 h-4 mr-1.5 ${trendsFetching ? 'animate-spin' : ''}`} />
                             Yenile
+                        </Button>
+
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={navigateToObservatory}
+                            className="hidden sm:flex"
+                            title="Project Observatory - Proje Gözlem Merkezi"
+                        >
+                            <Telescope className="w-4 h-4 mr-1.5" />
+                            Observatory
                         </Button>
                     </div>
 

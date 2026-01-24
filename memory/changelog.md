@@ -6,6 +6,46 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.15.0] - 2026-01-24
+
+### 🔭 Project Observatory (Phase 19)
+
+Kod bilmeden projeye tam hakimiyet sağlayan görsel gözetim paneli.
+
+### Added
+- **Observatory Backend API** (`apps/engine/src/api/observatory.ts`)
+  - `GET /api/observatory/metrics` - Proje metrikleri
+  - `GET /api/observatory/prompts` - AI prompt envanteri
+  - `GET /api/observatory/endpoints` - API kataloğu
+  - `GET /api/observatory/architecture` - Mimari dokümantasyonu
+  - `GET /api/observatory/roadmap` - Faz durumları
+
+- **OverviewPanel Component** - Metrik kartları (version, phases, endpoints)
+- **PromptInventory Component** - AI prompt arama/kopyalama (6 knowledge + 4 embedded)
+- **ArchitectureMap Component** - Sistem kartları + ADR tablosu
+- **ApiCatalog Component** - 21 endpoint, kategorize görünüm
+- **FeatureStatus Component** - 19 faz durumu + gelecek fikirler
+- **HealthMetrics Component** - Real-time sistem sağlığı (30s refresh)
+
+- **ProjectObservatory Page** (`apps/dashboard/src/pages/ProjectObservatory.tsx`)
+  - Tab navigation ile 6 panel
+  - Hash-based routing (`#/observatory`)
+
+- **observatoryApi Client** (`apps/dashboard/src/lib/observatoryApi.ts`)
+  - Typed API client for all observatory endpoints
+
+### Changed
+- **App.tsx** - Added QueryClientProvider and hash-based router
+- **UnifiedDashboard.tsx** - Added Observatory button in header
+
+### Technical
+- 12 new files created
+- 3 files modified
+- TypeScript build verified (engine + dashboard)
+
+---
+
+
 ## [1.14.0] - 2026-01-24
 
 ### 📊 Advanced Analytics (Phase 18)

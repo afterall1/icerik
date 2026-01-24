@@ -1,8 +1,8 @@
 # İçerik Trend Engine - Project Overview
 
-> **Version**: 1.14.0  
+> **Version**: 1.15.0  
 > **Last Updated**: 24 Ocak 2026  
-> **Status**: Phase 18 Complete (All Planned Phases Done)
+> **Status**: Phase 19 Complete (Project Observatory)
 
 ---
 

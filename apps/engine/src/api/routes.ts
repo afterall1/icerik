@@ -13,6 +13,7 @@ import { SUBREDDIT_CONFIG, CATEGORY_LABELS, CATEGORY_VIDEO_FORMATS } from '@icer
 import type { TrendQuery, ContentCategory, ApiResponse, TrendSummary, TrendData, SubredditConfig } from '@icerik/shared';
 import type { VideoFormat } from '../ai/scriptGenerator.js';
 import { createChildLogger } from '../utils/logger.js';
+import { createObservatoryRouter } from './observatory.js';
 
 const logger = createChildLogger('api');
 
@@ -36,6 +37,10 @@ export function createApiRouter(): Hono {
     // Global middleware
     api.use('*', cors());
     api.use('*', honoLogger());
+
+    // Mount Observatory router
+    const observatoryRouter = createObservatoryRouter();
+    api.route('/observatory', observatoryRouter);
 
     /**
      * GET /api/health
