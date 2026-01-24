@@ -15,7 +15,7 @@ import type { VideoFormat } from '../ai/scriptGenerator.js';
 import { createChildLogger } from '../utils/logger.js';
 import { createObservatoryRouter } from './observatory.js';
 import { getEnv } from '../utils/env.js';
-import { getImageSearchService, PexelsError } from '../images/index.js';
+import { getImageSearchService, PexelsError, VisualSequenceBuilder } from '../images/index.js';
 
 // Security imports
 import {
@@ -1269,6 +1269,7 @@ export function createApiRouter(): Hono {
                 hookContent?: string;
                 count?: number;
                 validate?: boolean;
+                orientation?: 'portrait' | 'landscape' | 'square';
             }>();
 
             if (!body.title) {
@@ -1288,6 +1289,7 @@ export function createApiRouter(): Hono {
                 {
                     count: Math.min(body.count || 6, 12),
                     validateImages: body.validate !== false,
+                    orientation: body.orientation || 'portrait', // Default portrait for reels
                 }
             );
 
@@ -1391,6 +1393,48 @@ export function createApiRouter(): Hono {
             },
             timestamp: new Date().toISOString(),
         });
+    });
+
+    /**
+     * POST /api/images/sequence
+     * Generate visual sequence for a platform script (Phase 22)
+     * Scene-by-scene semantic matching with coherence scoring
+     */
+    api.post('/images/sequence', async (c) => {
+        try {
+            const body = await c.req.json();
+            const { script, category, options } = body;
+
+            if (!script || !script.sections) {
+                return c.json({
+                    success: false,
+                    error: 'Script with sections is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const builder = new VisualSequenceBuilder(options);
+            const sequence = await builder.buildSequence(script, category || 'general');
+
+            return c.json({
+                success: true,
+                data: {
+                    sequence,
+                    sceneCount: sequence.sceneVisuals.length,
+                    avgMatchScore: sequence.metadata.avgMatchScore,
+                    coherenceScore: sequence.coherenceScore,
+                    warnings: sequence.warnings,
+                },
+                timestamp: new Date().toISOString(),
+            });
+        } catch (error) {
+            logger.error({ error }, 'Visual sequence generation failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
     });
 
     return api;

@@ -18,4 +18,4 @@ export {
 } from './Skeleton';
 export { TrendTypeBadge, TrendTypeBadgeSkeleton } from './TrendTypeBadge';
 export { FavoriteButton } from './FavoriteButton';
-
+export { VisualCard } from './VisualCard';

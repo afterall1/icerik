@@ -17,3 +17,4 @@ export { RatingPanel } from './RatingPanel';
 export { AnalyticsPanel } from './AnalyticsPanel';
 export { ImageCard, type ValidatedImage } from './ImageCard';
 export { ImageSuggestionsPanel } from './ImageSuggestionsPanel';
+export { VisualDiscoveryPanel, type SectionType } from './VisualDiscoveryPanel';

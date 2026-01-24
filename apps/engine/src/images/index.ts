@@ -41,3 +41,44 @@ export {
     type ValidatedImage,
     type ImageSearchResult,
 } from './ImageSearchService.js';
+
+// Scene Analyzer (Phase 22)
+export {
+    SceneAnalyzer,
+    createSceneAnalyzer,
+    type Scene,
+    type SceneAnalysis,
+    type SceneType,
+    type SceneMood,
+    type SceneAnalyzerOptions,
+} from './SceneAnalyzer.js';
+
+// Semantic Matcher (Phase 22)
+export {
+    SemanticMatcher,
+    createSemanticMatcher,
+    type VisualQuery,
+    type MatchResult,
+    type QueryGenerationResult,
+    type SemanticMatcherOptions,
+} from './SemanticMatcher.js';
+
+// Visual Sequence Builder (Phase 22)
+export {
+    VisualSequenceBuilder,
+    createVisualSequenceBuilder,
+    type SceneVisual,
+    type VisualSequence,
+    type SequenceBuilderOptions,
+} from './VisualSequenceBuilder.js';
+
+// Visual Search Specialist (AI-powered)
+export {
+    VisualSearchSpecialist,
+    getVisualSearchSpecialist,
+    resetVisualSearchSpecialist,
+    type VisualSearchInput,
+    type VisualSearchOutput,
+    type SectionType,
+    type VisualMood,
+} from './VisualSearchSpecialist.js';

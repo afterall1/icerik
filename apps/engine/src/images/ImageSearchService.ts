@@ -10,6 +10,7 @@ import { createChildLogger } from '../utils/logger.js';
 import { getPexelsClient, type ImageResult, PexelsError } from './PexelsClient.js';
 import { getImageValidator, type ImageValidationResult } from './ImageValidator.js';
 import { getKeywordExtractor, type KeywordExtractionInput } from './KeywordExtractor.js';
+import { getVisualSearchSpecialist, type SectionType } from './VisualSearchSpecialist.js';
 
 const logger = createChildLogger('image-search');
 
@@ -99,23 +100,62 @@ export class ImageSearchService {
             count?: number;
             validateImages?: boolean;
             useCache?: boolean;
+            orientation?: 'portrait' | 'landscape' | 'square';
+            useAI?: boolean;
+            sectionType?: SectionType;
         } = {}
     ): Promise<ImageSearchResult> {
         const {
             count = 6,
             validateImages = true,
             useCache = true,
+            orientation = 'portrait', // Default to portrait for reels (9:16)
+            useAI = true, // Use AI-powered search by default
+            sectionType = 'body',
         } = options;
 
-        // Extract keywords
-        const keywords = this.keywordExtractor.extract(input);
-        const cacheKey = `${keywords.searchQuery}:${count}:${validateImages}`;
+        let searchQuery: string;
+
+        // Try AI-powered search first
+        if (useAI) {
+            try {
+                const specialist = getVisualSearchSpecialist();
+                if (specialist.isConfigured()) {
+                    const aiResult = await specialist.generateSearchQueries({
+                        sectionType,
+                        sectionContent: input.hookContent || input.bodyContent || input.title,
+                        title: input.title,
+                        category: input.category,
+                    });
+                    searchQuery = aiResult.primaryQuery;
+                    logger.info({
+                        query: searchQuery,
+                        mood: aiResult.visualMood,
+                        aiGenerated: aiResult.aiGenerated,
+                    }, 'AI-generated search query');
+                } else {
+                    // Fallback to keyword extractor
+                    const keywords = this.keywordExtractor.extract(input);
+                    searchQuery = keywords.searchQuery;
+                }
+            } catch (error) {
+                logger.warn({ error }, 'AI search failed, using keyword extractor');
+                const keywords = this.keywordExtractor.extract(input);
+                searchQuery = keywords.searchQuery;
+            }
+        } else {
+            // Use traditional keyword extraction
+            const keywords = this.keywordExtractor.extract(input);
+            searchQuery = keywords.searchQuery;
+        }
+
+        const cacheKey = `${searchQuery}:${count}:${validateImages}:${orientation}`;
 
         // Check cache
         if (useCache) {
             const cached = searchCache.get(cacheKey);
             if (cached && Date.now() - cached.timestamp < CACHE_CONFIG.TTL_MS) {
-                logger.debug({ query: keywords.searchQuery }, 'Returning cached search result');
+                logger.debug({ query: searchQuery }, 'Returning cached search result');
                 return {
                     ...cached.result,
                     cachedAt: cached.timestamp,
@@ -126,10 +166,10 @@ export class ImageSearchService {
         try {
             // Search Pexels
             const searchResult = await this.pexelsClient.searchPhotos(
-                keywords.searchQuery,
+                searchQuery,
                 {
                     perPage: Math.min(count * 2, 15), // Fetch more for filtering
-                    orientation: 'landscape', // Better for video backgrounds
+                    orientation, // Use requested orientation (portrait for reels)
                 }
             );
 
@@ -144,7 +184,7 @@ export class ImageSearchService {
                 validatedImages = searchResult.photos.map((photo, index) => ({
                     ...photo,
                     validation: validationResults[index],
-                    searchQuery: keywords.searchQuery,
+                    searchQuery: searchQuery,
                 }));
 
                 // Sort by validation status (clean first) and then by original order
@@ -166,7 +206,7 @@ export class ImageSearchService {
                         confidenceScore: 0,
                         detectedElements: [],
                     },
-                    searchQuery: keywords.searchQuery,
+                    searchQuery: searchQuery,
                 }));
             }
 
@@ -174,7 +214,7 @@ export class ImageSearchService {
             const limitedImages = validatedImages.slice(0, count);
 
             const result: ImageSearchResult = {
-                query: keywords.searchQuery,
+                query: searchQuery,
                 images: limitedImages,
                 totalFound: searchResult.totalResults,
                 validCount: limitedImages.filter(i => i.validation.isClean).length,
@@ -189,7 +229,7 @@ export class ImageSearchService {
             });
 
             logger.info({
-                query: keywords.searchQuery,
+                query: searchQuery,
                 totalFound: result.totalFound,
                 returned: limitedImages.length,
                 valid: result.validCount,
@@ -202,7 +242,7 @@ export class ImageSearchService {
             if (error instanceof PexelsError) {
                 throw error;
             }
-            logger.error({ error, query: keywords.searchQuery }, 'Image search failed');
+            logger.error({ error, query: searchQuery }, 'Image search failed');
             throw new Error(`Image search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
