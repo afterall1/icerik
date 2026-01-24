@@ -6,6 +6,43 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.19.0] - 2026-01-24
+
+### 🧠 Visual Search Specialist AI Agent (Phase 22)
+
+Script bölümlerini derinden analiz eden AI-powered görsel arama uzmanı.
+
+### Added
+- **VisualSearchSpecialist.ts** (`apps/engine/src/images/VisualSearchSpecialist.ts`)
+  - Gemini AI integration for semantic understanding
+  - Multi-step reasoning system prompt
+  - Soyut→Somut visual mapping (e.g., "veri sızıntısı" → "hacker laptop dark")
+  - Section-aware mood selection (Hook=dramatic, Body=professional, CTA=energetic)
+  - Automatic fallback to KeywordExtractor
+
+- **VisualDiscoveryPanel.tsx** (`apps/dashboard/src/components/molecules/VisualDiscoveryPanel.tsx`)
+  - Slide-out panel for section-specific image search
+  - Real-time search status and image grid
+
+- **VisualCard.tsx** (`apps/dashboard/src/components/atoms/VisualCard.tsx`)
+  - Image card with validation badges
+  - Fullscreen preview, download, external link
+
+- **useVisualSearch.ts** (`apps/dashboard/src/lib/useVisualSearch.ts`)
+  - React hook for visual search API
+
+### Changed
+- **ImageSearchService.ts** - Added `useAI` option with specialist integration
+- **PlatformScriptCard.tsx** - Added 🖼️ visual button to Hook/Body/CTA sections
+- **routes.ts** - Added `orientation` parameter to search endpoint
+
+### Improvements
+- **Portrait orientation** default for Reels (9:16) format
+- **AI-generated queries** instead of keyword extraction
+- **Fallback strategy** when AI unavailable
+
+---
+
 ## [1.18.0] - 2026-01-24
 
 ### 🖼️ Image Discovery System (Phase 21)
