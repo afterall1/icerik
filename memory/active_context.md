@@ -1,41 +1,42 @@
 # Active Context - İçerik Trend Engine
 
-> **Son Güncelleme**: 25 Ocak 2026, 00:25  
-> **Aktif Faz**: Phase 23 - Visual Selection System ✅ COMPLETE  
-> **Current Version**: v1.20.0
+> **Son Güncelleme**: 25 Ocak 2026, 15:58  
+> **Aktif Faz**: Phase 24 - Voice Generation System 🚧 IN PROGRESS  
+> **Current Version**: v1.21.0-dev
 
 ---
 
 ## 🎯 Current Status
 
-**TÜM PLANLANAN FAZLAR + BONUS FAZLAR TAMAMLANDI** (Phase 1-23)
+**Phase 24: Voice Generation System - Devam Ediyor**
 
-Toplam ~27,000+ satır kod implemente edildi.
+TTS (Text-to-Speech) entegrasyonu için ElevenLabs ve Fish Audio API'leri implemente edildi. Backend tamamen çalışıyor, frontend ses önizleme komponenti test ediliyor.
 
 ---
 
-## ✅ Son Oturum Özeti (25 Ocak 2026, 00:25)
+## ✅ Son Oturum Özeti (25 Ocak 2026, 15:58)
 
-### Phase 23: Visual Selection System ✅
+### Phase 24: Voice Generation System 🚧
 
-**Backend (IndexedDB - no backend changes)**:
-- Client-side storage only (ADR-020: Local-First Analytics)
+**Backend (Tamamlandı)**:
+- `VoiceService.ts` - Multi-provider TTS (ElevenLabs + Fish Audio)
+- `VoiceCache.ts` - SQLite cache for generated audio
+- `voiceProviders.ts` - Provider abstraction layer
+- API endpoints: `/api/voice/list`, `/api/voice/generate`, `/api/voice/preview/:id`
+- CORS proxy for audio preview fetching
 
-**Frontend (3 new files)**:
-- `selectedVisualsTypes.ts` - Types + utility functions (~100 lines)
-- `useVisualSelections.ts` - IndexedDB hook for persistence (~280 lines)
-- `SelectedVisualsPreview.tsx` - Section preview component (~135 lines)
+**Frontend (Tamamlandı)**:
+- `voiceTypes.ts` - Voice, VoiceSettings types
+- `useVoiceSelection.ts` - IndexedDB persistence hook
+- `useVoiceGeneration.ts` - API integration hook
+- `VoicePlayer.tsx` - Audio playback component
+- `VoicePreviewCard.tsx` - Voice preview with play button (SIMPLIFIED)
+- `VoiceSelectionModal.tsx` - Voice selection modal
 
-**Frontend Modifications**:
-- `VisualCard.tsx` - Selection overlay, order badge, select button
-- `VisualDiscoveryPanel.tsx` - Selection state props, count badge in header
-- `PlatformScriptCard.tsx` - Hook integration, SelectedVisualsPreview per section
-
-**Key Features**:
-- Max 2 visuals per section (Hook/Body/CTA)
-- Green ring + order badge on selected images
-- IndexedDB persistence across page reloads
-- Section-specific selection previews
+**Key Verification**:
+- ✅ TypeScript build passed (engine + dashboard)
+- ✅ Backend API verified (21 voices, 31KB MP3)
+- 🔄 Frontend voice preview testing
 
 ---
 
@@ -43,41 +44,47 @@ Toplam ~27,000+ satır kod implemente edildi.
 
 | Metric | Value |
 |--------|-------|
-| Phases Completed | 1 (23) |
-| New Files (Frontend) | 3 |
-| Modified Files | 3 |
+| Phases Completed | 0 (24 in progress) |
+| New Files (Backend) | 3 |
+| New Files (Frontend) | 6 |
+| Modified Files | 2 |
 | Build Status | ✅ Passed (Dashboard + Engine) |
 
 ---
 
 ## 🏗️ Architecture Highlights
 
-1. **useVisualSelections Hook**: IndexedDB-based persistence
-2. **SelectedVisualsPreview**: Thumbnail grid with remove functionality
-3. **Selection Limit**: Max 2 per section, enforced at hook level
-4. **Consistent Pattern**: Matches useScriptHistory IndexedDB pattern
+1. **VoiceService**: Multi-provider TTS with fallback logic
+2. **VoiceCache**: SQLite-based audio caching with TTL
+3. **useVoiceSelection**: IndexedDB persistence for voice preferences
+4. **Audio Proxy**: Backend proxy to bypass CORS for audio preview
 
 ---
 
-## 📅 Future Development Options
+## 🚧 Incomplete Features
 
-1. **ML-based NES Optimization** - User feedback'ten öğrenme
-2. **Real-time Alerts** - WebSocket ile canlı trend bildirimleri
-3. **Team Collaboration** - Multi-user features
-4. **Platform API Integration** - TikTok/X direct posting
-5. **Video Search** - Pexels Video API integration
-6. **Visual Timeline** - Drag-drop visual sequencing
-7. **Export with Visuals** - PDF/video export with selected visuals
+1. **Voice Preview Frontend**: Component çalışıyor ama kullanıcı test etmeli
+2. **Voice Generation Flow**: Generate endpoint ready, UI integration pending
+3. **Walkthrough**: Final verification sonrası yazılacak
 
 ---
 
-## 📁 Memory Files Updated (This Session)
+## 📅 Next Session Priorities
 
-- [x] `memory/active_context.md` ✅
-- [x] `memory/changelog.md` - v1.20.0
-- [x] `memory/roadmap.md` - Phase 23
-- [x] `memory/_SYNC_CHECKLIST.md` ✅
-- [x] `memory/architecture/local-storage.md` - useVisualSelections
+1. Complete voice preview testing in browser
+2. Implement voice generation workflow in PlatformScriptCard
+3. Add audio waveform visualization
+4. Create walkthrough.md with verification results
+
+---
+
+## 📁 Docs to Update (After Phase 24 Complete)
+
+- [ ] `memory/changelog.md` - v1.21.0
+- [ ] `memory/roadmap.md` - Phase 24 status
+- [ ] `memory/api/endpoints.md` - Voice endpoints
+- [ ] `memory/api/types.md` - Voice types
+- [ ] `memory/architecture/` - New TTS architecture doc
 
 ---
 
@@ -86,7 +93,7 @@ Toplam ~27,000+ satır kod implemente edildi.
 ```bash
 packages/shared  ✅
 apps/engine      ✅ (TypeScript verified)
-apps/dashboard   ✅ (121.10 kB, 3.78s)
+apps/dashboard   ✅ (TypeScript verified)
 ```
 
 ---

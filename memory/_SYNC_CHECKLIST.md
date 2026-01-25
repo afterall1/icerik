@@ -1,7 +1,7 @@
 # 🔄 End-of-Session Sync Checklist
 
 > **Proje**: İçerik Trend Engine  
-> **Son Sync**: 25 Ocak 2026, 00:25
+> **Son Sync**: 25 Ocak 2026, 15:58
 
 Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak doldurulmalıdır.
 
@@ -10,47 +10,50 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 ## 1. Kod Değişiklikleri → Dokümantasyon Güncellemeleri
 
 - [x] Store/State değişti mi? → Hayır
-- [x] Yeni API endpoint eklendi mi? → Hayır
-- [x] Shared types değişti mi? → Hayır
-- [x] Yeni pattern/mimari eklendi mi? → useVisualSelections IndexedDB hook
-- [x] Feature logic değişti mi? → Visual selection system
+- [x] Yeni API endpoint eklendi mi? → Evet (voice/list, voice/generate, voice/preview)
+- [x] Shared types değişti mi? → Evet (voice types)
+- [x] Yeni pattern/mimari eklendi mi? → Evet (TTS multi-provider, audio proxy)
+- [x] Feature logic değişti mi? → Evet (Voice Generation System)
 
 ## 2. Bütünlük Kontrolü
 
-- [x] API dokümantasyonu gerçek kodu yansıtıyor mu? ✅
-- [x] Kritik kararlar ADR olarak kaydedildi mi? → Hayır (follows ADR-020 pattern) ✅
+- [x] API dokümantasyonu gerçek kodu yansıtıyor mu? → Güncellenecek
+- [x] Kritik kararlar ADR olarak kaydedildi mi? → Beklemede
 - [x] `active_context.md` YENİ bir asistan için yeterince detaylı mı? ✅
 
 ## 3. Doğrulama
 
-- [x] Test sonuçları kaydedildi mi? → TypeScript build passed ✅
-- [x] Changelog güncellendi mi? → v1.20.0 ✅
-- [x] Roadmap/active_context güncellendi mi? → Phase 23 ✅
+- [x] Test sonuçları kaydedildi mi? → Backend verified (31KB MP3) ✅
+- [x] Changelog güncellendi mi? → Beklemede (v1.21.0-dev)
+- [x] Roadmap/active_context güncellendi mi? → Phase 24 ✅
 
 ---
 
-## 4. Bu Oturum Güncellemeleri (25 Ocak 2026, 00:25)
+## 4. Bu Oturum Güncellemeleri (25 Ocak 2026, 15:58)
 
 | Dosya | Güncelleme |
 |-------|------------|
-| `apps/dashboard/src/lib/selectedVisualsTypes.ts` | NEW - Types + utilities (~100 lines) |
-| `apps/dashboard/src/lib/useVisualSelections.ts` | NEW - IndexedDB hook (~280 lines) |
-| `apps/dashboard/src/components/molecules/SelectedVisualsPreview.tsx` | NEW - Section preview (~135 lines) |
-| `apps/dashboard/src/components/atoms/VisualCard.tsx` | Selection overlay + order badge |
-| `apps/dashboard/src/components/molecules/VisualDiscoveryPanel.tsx` | Selection state props |
-| `apps/dashboard/src/components/molecules/PlatformScriptCard.tsx` | Hook integration + previews |
-| `memory/active_context.md` | Phase 23 complete |
-| `memory/changelog.md` | v1.20.0 added |
-| `memory/roadmap.md` | Phase 22 + 23 added |
-| `memory/architecture/local-storage.md` | useVisualSelections documented |
+| `apps/engine/src/services/voiceProviders.ts` | NEW - Multi-provider abstraction |
+| `apps/engine/src/services/VoiceService.ts` | NEW - TTS service with fallback |
+| `apps/engine/src/services/VoiceCache.ts` | NEW - SQLite audio cache |
+| `apps/engine/src/api/routes.ts` | Voice endpoints added |
+| `apps/dashboard/src/lib/voiceTypes.ts` | NEW - Voice types |
+| `apps/dashboard/src/lib/useVoiceSelection.ts` | NEW - IndexedDB hook |
+| `apps/dashboard/src/lib/useVoiceGeneration.ts` | NEW - API hook |
+| `apps/dashboard/src/components/molecules/VoicePlayer.tsx` | NEW - Audio player |
+| `apps/dashboard/src/components/molecules/VoicePreviewCard.tsx` | NEW - Preview card (simplified) |
+| `apps/dashboard/src/components/organisms/VoiceSelectionModal.tsx` | NEW - Selection modal |
+| `memory/active_context.md` | Phase 24 in progress |
 
 ---
 
 ## 5. Önceki Oturum Özeti
 
-| Dosya | Güncelleme |
-|-------|-----------| 
-| Visual Search AI Agent | Phase 22 - VisualSearchSpecialist.ts |
+| Dosya | Güncelleme | 
+|-------|-----------|
+| Visual Selection System | Phase 23 complete |
+| useVisualSelections.ts | IndexedDB persistence |
+| SelectedVisualsPreview.tsx | Section preview |
 
 ---
 
@@ -59,12 +62,9 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 ```powershell
 # Memory sync workflow
 # 1. active_context.md güncelle ✅
-# 2. changelog.md güncelle ✅
-# 3. roadmap.md güncelle ✅
-# 4. local-storage.md güncelle ✅
-# 5. Bu checklist'i doldur ✅
-# 6. git add memory/
-# 7. git commit -m "chore: memory sync - 2026-01-25 (Phase 23)"
+# 2. _SYNC_CHECKLIST.md güncelle ✅
+# 3. git add memory/
+# 4. git commit -m "chore: memory sync - 2026-01-25 (Phase 24 in progress)"
 ```
 
 ---
@@ -73,14 +73,15 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 
 | Metric | Before | After |
 |--------|--------|-------|
-| API Endpoints | 100% | 100% |
-| Type Documentation | 100% | 100% |
-| Architecture Docs | 100% | 100% |
+| API Endpoints | 100% | 90% (voice endpoints pending) |
+| Type Documentation | 100% | 90% (voice types pending) |
+| Architecture Docs | 100% | 95% (TTS doc pending) |
 | Security Docs | 100% | 100% |
 | Image Discovery | 100% | 100% |
 | Visual Search AI | 100% | 100% |
-| Visual Selection | 0% | 100% |
-| Overall | 98% | 100% |
+| Visual Selection | 100% | 100% |
+| Voice Generation | 0% | 80% (frontend testing) |
+| Overall | 100% | 95% |
 
 ---
 
@@ -135,7 +136,7 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 
 ---
 
-## 🖼️ Visual Selection System Status (Phase 23 NEW)
+## 🖼️ Visual Selection System Status (Phase 23)
 
 | Component | Status |
 |-----------|--------|
@@ -145,3 +146,19 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 | VisualCard Selection UI | ✅ Active (overlay + badge) |
 | Max 2 Per Section | ✅ Enforced |
 | Persistence | ✅ IndexedDB (survives refresh) |
+
+---
+
+## 🔊 Voice Generation System Status (Phase 24 IN PROGRESS)
+
+| Component | Status |
+|-----------|--------|
+| VoiceService.ts | ✅ Active (multi-provider) |
+| VoiceCache.ts | ✅ Active (SQLite cache) |
+| Voice API Endpoints | ✅ Active (3 endpoints) |
+| voiceTypes.ts | ✅ Active (frontend types) |
+| useVoiceSelection.ts | ✅ Active (IndexedDB) |
+| VoicePreviewCard.tsx | ✅ Active (simplified) |
+| VoiceSelectionModal.tsx | ✅ Active |
+| Backend Verification | ✅ Passed (31KB MP3) |
+| Frontend Testing | 🔄 In Progress |
