@@ -235,6 +235,43 @@ export const generateVariantsBodySchema = z.object({
 });
 
 // ============================================
+// VOICE GENERATION SCHEMAS
+// ============================================
+
+/** Voice provider options */
+const VOICE_PROVIDERS = ['elevenlabs', 'fishaudio'] as const;
+
+/**
+ * Voice settings for generation
+ */
+export const voiceSettingsSchema = z.object({
+    stability: z.number().min(0).max(1).optional(),
+    similarityBoost: z.number().min(0).max(1).optional(),
+    speed: z.number().min(0.5).max(2).optional(),
+    style: z.number().min(0).max(1).optional(),
+});
+
+/**
+ * POST /api/voice/generate body
+ */
+export const generateVoiceBodySchema = z.object({
+    text: z.string().min(1, 'Text is required').max(10000, 'Text too long (max 10,000 characters)'),
+    voiceId: z.string().min(1, 'Voice ID is required'),
+    provider: z.enum(VOICE_PROVIDERS).optional(),
+    settings: voiceSettingsSchema.optional(),
+    format: z.enum(['mp3', 'wav', 'ogg']).optional(),
+});
+
+export type GenerateVoiceInput = z.infer<typeof generateVoiceBodySchema>;
+
+/**
+ * Query parameters for /api/voice/list endpoint
+ */
+export const voiceListQuerySchema = z.object({
+    provider: z.enum(VOICE_PROVIDERS).optional(),
+});
+
+// ============================================
 // VALIDATION MIDDLEWARE FACTORY
 // ============================================
 
@@ -365,4 +402,5 @@ export {
     LANGUAGES,
     ITERATION_TARGETS,
     VARIANT_STYLES,
+    VOICE_PROVIDERS,
 };
