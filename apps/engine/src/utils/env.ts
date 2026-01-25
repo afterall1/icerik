@@ -13,6 +13,9 @@ const envSchema = z.object({
     API_SECRET_KEY: z.string().min(32).optional(), // Optional API key for auth
     // Image Discovery
     PEXELS_API_KEY: z.string().optional(), // Pexels API key for image search
+    // Voice Generation (TTS)
+    ELEVENLABS_API_KEY: z.string().optional(), // ElevenLabs API key for TTS
+    FISHAUDIO_API_KEY: z.string().optional(), // Fish Audio API key for TTS (fallback)
 });
 
 export type Env = z.infer<typeof envSchema>;

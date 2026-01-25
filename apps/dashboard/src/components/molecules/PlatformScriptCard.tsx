@@ -11,7 +11,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Card } from '../atoms';
 import type { PlatformScriptResult, Platform, AlgorithmScore, ViralPotentialLabel, PlatformScript, IterationResult } from '../../lib/api';
 import { PLATFORM_LABELS, PLATFORM_ICONS, PLATFORM_COLORS } from '../../lib/api';
-import { Copy, Check, ChevronDown, ChevronUp, Clock, FileText, AlertCircle, Sparkles, RefreshCw, AlertTriangle, CheckCircle, TrendingUp, Wand2, Image } from 'lucide-react';
+import { Copy, Check, ChevronDown, ChevronUp, Clock, FileText, AlertCircle, Sparkles, RefreshCw, AlertTriangle, CheckCircle, TrendingUp, Wand2, Image, Volume2 } from 'lucide-react';
 import { AlgorithmEducationPanel } from './AlgorithmEducationPanel';
 import { AlgorithmScoreCard, CompactScoreBadge } from './AlgorithmScoreCard';
 import { IterationPanel } from './IterationPanel';
@@ -20,6 +20,10 @@ import { SelectedVisualsPreview } from './SelectedVisualsPreview';
 import { useVisualSelections } from '../../lib/useVisualSelections';
 import { generateScriptId, type SelectableSectionType } from '../../lib/selectedVisualsTypes';
 import type { ValidatedImage } from '../../lib/useVisualSearch';
+import { VoicePlayer } from './VoicePlayer';
+import { useVoiceGeneration } from '../../lib/useVoiceGeneration';
+import { useVoiceSelection } from '../../lib/useVoiceSelection';
+import { VoiceSelectionModal } from '../organisms/VoiceSelectionModal';
 
 /**
  * Platform-optimal duration thresholds for warning display
@@ -166,10 +170,24 @@ export function PlatformScriptCard({
     const [visualPanelOpen, setVisualPanelOpen] = useState(false);
     const [visualPanelSection, setVisualPanelSection] = useState<SectionType | null>(null);
     const [visualPanelContent, setVisualPanelContent] = useState('');
+    // Voice Generation state
+    const [voiceExpanded, setVoiceExpanded] = useState(false);
+    const [voiceModalOpen, setVoiceModalOpen] = useState(false);
 
     const label = PLATFORM_LABELS[platform];
     const icon = PLATFORM_ICONS[platform];
     const colors = PLATFORM_COLORS[platform];
+
+    // Voice generation hooks
+    const { primaryVoice, hasPrimaryVoice } = useVoiceSelection();
+    const {
+        generateAudio,
+        isLoading: isVoiceLoading,
+        error: voiceError,
+        audioUrl,
+        audioDuration,
+        lastProvider,
+    } = useVoiceGeneration();
 
     // Generate stable script ID for visual selections
     const scriptId = useMemo(() => {
@@ -552,6 +570,99 @@ export function PlatformScriptCard({
                         </span>
                     ))}
                 </div>
+
+                {/* Voice Generation Section */}
+                <div className="px-3 py-2 border-t border-slate-800">
+                    {!voiceExpanded ? (
+                        <button
+                            onClick={() => setVoiceExpanded(true)}
+                            className="flex items-center gap-2 w-full text-left text-xs text-slate-400 hover:text-slate-300 transition-colors py-1"
+                        >
+                            <Volume2 className="w-3 h-3" />
+                            <span>🔊 Seslendir</span>
+                            <ChevronDown className="w-3 h-3 ml-auto" />
+                        </button>
+                    ) : (
+                        <div className="space-y-2">
+                            <button
+                                onClick={() => setVoiceExpanded(false)}
+                                className="flex items-center gap-2 w-full text-left text-xs text-slate-300"
+                            >
+                                <Volume2 className="w-3 h-3" />
+                                <span>🔊 Seslendir</span>
+                                <ChevronUp className="w-3 h-3 ml-auto" />
+                            </button>
+
+                            {/* Generate Button */}
+                            {!audioUrl && !isVoiceLoading && (
+                                <button
+                                    onClick={async () => {
+                                        if (!scriptId || !hasPrimaryVoice || !primaryVoice) return;
+                                        await generateAudio(scriptId, script.script, {
+                                            voiceId: primaryVoice.voiceId,
+                                            provider: primaryVoice.provider,
+                                            settings: primaryVoice.settings,
+                                        });
+                                    }}
+                                    disabled={!hasPrimaryVoice || isVoiceLoading}
+                                    className={`w-full px-3 py-2 text-sm rounded-lg flex items-center justify-center gap-2 transition-colors ${hasPrimaryVoice
+                                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                                        : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                        }`}
+                                >
+                                    <Volume2 className="w-4 h-4" />
+                                    {hasPrimaryVoice ? (
+                                        <>
+                                            <span>Seslendir</span>
+                                            <span className="text-xs opacity-75">• {primaryVoice?.name}</span>
+                                        </>
+                                    ) : (
+                                        <span>Önce ses seçin</span>
+                                    )}
+                                </button>
+                            )}
+
+                            {/* Voice Player */}
+                            <VoicePlayer
+                                audioUrl={audioUrl}
+                                duration={audioDuration || undefined}
+                                provider={lastProvider || undefined}
+                                isLoading={isVoiceLoading}
+                                error={voiceError}
+                                onRegenerate={async () => {
+                                    if (!scriptId || !hasPrimaryVoice || !primaryVoice) return;
+                                    await generateAudio(scriptId, script.script, {
+                                        voiceId: primaryVoice.voiceId,
+                                        provider: primaryVoice.provider,
+                                        settings: primaryVoice.settings,
+                                    });
+                                }}
+                                compact
+                            />
+
+                            {/* Voice selection button when no voice selected */}
+                            {!hasPrimaryVoice && (
+                                <button
+                                    onClick={() => setVoiceModalOpen(true)}
+                                    className="w-full px-3 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    <Volume2 className="w-4 h-4" />
+                                    <span>Ses Seç</span>
+                                </button>
+                            )}
+
+                            {/* Change voice button when voice is selected */}
+                            {hasPrimaryVoice && (
+                                <button
+                                    onClick={() => setVoiceModalOpen(true)}
+                                    className="text-[10px] text-slate-500 hover:text-slate-400 underline transition-colors"
+                                >
+                                    Farklı ses seç
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
             </Card>
 
             {/* Visual Discovery Panel */}
@@ -569,6 +680,12 @@ export function PlatformScriptCard({
                     selectionCount={selections?.selections[visualPanelSection as SelectableSectionType]?.length ?? 0}
                 />
             )}
+
+            {/* Voice Selection Modal */}
+            <VoiceSelectionModal
+                isOpen={voiceModalOpen}
+                onClose={() => setVoiceModalOpen(false)}
+            />
         </>
     );
 }

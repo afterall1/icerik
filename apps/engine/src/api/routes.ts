@@ -1437,5 +1437,268 @@ export function createApiRouter(): Hono {
         }
     });
 
+    // ============================================
+    // VOICE GENERATION ENDPOINTS (Phase 24)
+    // ============================================
+
+    // Rate limiting for voice endpoints
+    api.use('/voice/*', security.aiLimiter());
+
+    /**
+     * GET /api/voice/list
+     * Get available voices from configured providers
+     */
+    api.get('/voice/list', async (c) => {
+        try {
+            const { getVoiceService } = await import('../voice/index.js');
+            const voiceService = getVoiceService();
+
+            const providerParam = c.req.query('provider') as 'elevenlabs' | 'fishaudio' | undefined;
+            const result = await voiceService.getVoices(providerParam);
+
+            return c.json({
+                success: true,
+                data: result,
+                timestamp: new Date().toISOString(),
+            });
+        } catch (error) {
+            logger.error({ error }, 'Failed to list voices');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * POST /api/voice/generate
+     * Generate TTS audio from text
+     */
+    api.post('/voice/generate', async (c) => {
+        try {
+            const { getVoiceService } = await import('../voice/index.js');
+            const voiceService = getVoiceService();
+
+            const body = await c.req.json() as {
+                text: string;
+                voiceId: string;
+                provider?: 'elevenlabs' | 'fishaudio';
+                settings?: {
+                    stability?: number;
+                    similarityBoost?: number;
+                    speed?: number;
+                    style?: number;
+                };
+                format?: 'mp3' | 'wav' | 'ogg';
+            };
+
+            // Validate required fields
+            if (!body.text || body.text.trim().length === 0) {
+                return c.json({
+                    success: false,
+                    error: 'Text is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            if (!body.voiceId) {
+                return c.json({
+                    success: false,
+                    error: 'Voice ID is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            if (body.text.length > 10000) {
+                return c.json({
+                    success: false,
+                    error: 'Text too long (max 10,000 characters)',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            logger.info({
+                voiceId: body.voiceId,
+                textLength: body.text.length,
+                provider: body.provider,
+            }, 'Generating voice...');
+
+            const result = await voiceService.generateSpeech({
+                text: body.text,
+                voiceId: body.voiceId,
+                provider: body.provider,
+                settings: body.settings,
+                format: body.format,
+            });
+
+            if (!result.success) {
+                return c.json({
+                    success: false,
+                    error: result.error,
+                    provider: result.provider,
+                    timestamp: new Date().toISOString(),
+                }, 500);
+            }
+
+            // Return audio as binary response
+            c.header('Content-Type', result.contentType || 'audio/mpeg');
+            c.header('Content-Length', result.audioBuffer!.length.toString());
+            c.header('X-Voice-Provider', result.provider);
+            c.header('X-Audio-Duration', (result.durationSeconds || 0).toFixed(2));
+            c.header('X-Characters-Used', (result.charactersUsed || 0).toString());
+
+            // Convert Buffer to Uint8Array for Hono compatibility
+            const audioData = new Uint8Array(result.audioBuffer!);
+            return new Response(audioData, {
+                status: 200,
+                headers: {
+                    'Content-Type': result.contentType || 'audio/mpeg',
+                    'Content-Length': result.audioBuffer!.length.toString(),
+                    'X-Voice-Provider': result.provider,
+                    'X-Audio-Duration': (result.durationSeconds || 0).toFixed(2),
+                    'X-Characters-Used': (result.charactersUsed || 0).toString(),
+                },
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Voice generation failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * GET /api/voice/status
+     * Get TTS provider status and quota information
+     */
+    api.get('/voice/status', async (c) => {
+        try {
+            const { getVoiceService } = await import('../voice/index.js');
+            const voiceService = getVoiceService();
+
+            const providers = await voiceService.getStatus();
+            const cacheStats = voiceService.getCacheStats();
+
+            return c.json({
+                success: true,
+                data: {
+                    providers,
+                    cache: cacheStats,
+                },
+                timestamp: new Date().toISOString(),
+            });
+        } catch (error) {
+            logger.error({ error }, 'Failed to get voice status');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * GET /api/voice/preview/:voiceId
+     * Stream preview audio for a voice (proxies external URL to bypass CORS)
+     */
+    api.get('/voice/preview/:voiceId', async (c) => {
+        try {
+            const { getVoiceService } = await import('../voice/index.js');
+            const voiceService = getVoiceService();
+
+            const voiceId = c.req.param('voiceId');
+            const providerParam = c.req.query('provider') as 'elevenlabs' | 'fishaudio' | undefined;
+
+            if (!voiceId) {
+                return c.json({
+                    success: false,
+                    error: 'Voice ID is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const previewUrl = await voiceService.getPreviewUrl(voiceId, providerParam);
+
+            if (!previewUrl) {
+                return c.json({
+                    success: false,
+                    error: 'Preview not available for this voice',
+                    timestamp: new Date().toISOString(),
+                }, 404);
+            }
+
+            // Proxy the audio to bypass CORS
+            const audioResponse = await fetch(previewUrl);
+
+            if (!audioResponse.ok) {
+                return c.json({
+                    success: false,
+                    error: `Failed to fetch preview audio: ${audioResponse.status}`,
+                    timestamp: new Date().toISOString(),
+                }, 502);
+            }
+
+            const audioBuffer = await audioResponse.arrayBuffer();
+            const contentType = audioResponse.headers.get('Content-Type') || 'audio/mpeg';
+
+            // Log for debugging
+            logger.debug({ contentType, size: audioBuffer.byteLength }, 'Serving voice preview audio');
+
+            // Create explicit Headers object
+            const headers = new Headers();
+            headers.set('Content-Type', contentType);
+            headers.set('Content-Length', audioBuffer.byteLength.toString());
+            headers.set('Cache-Control', 'public, max-age=86400');
+            headers.set('Access-Control-Allow-Origin', 'http://localhost:5173');
+            headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+            headers.set('Access-Control-Allow-Headers', 'Content-Type');
+
+            // Return Response with Buffer body
+            return new Response(Buffer.from(audioBuffer), {
+                status: 200,
+                headers,
+            });
+        } catch (error) {
+            logger.error({ error }, 'Failed to get voice preview');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * POST /api/voice/cache/clear
+     * Clear the voice audio cache
+     */
+    api.post('/voice/cache/clear', async (c) => {
+        try {
+            const { getVoiceService } = await import('../voice/index.js');
+            const voiceService = getVoiceService();
+
+            const deleted = voiceService.clearCache();
+
+            logger.info({ deleted }, 'Voice cache cleared');
+
+            return c.json({
+                success: true,
+                data: { deleted },
+                timestamp: new Date().toISOString(),
+            });
+        } catch (error) {
+            logger.error({ error }, 'Failed to clear voice cache');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
     return api;
 }
