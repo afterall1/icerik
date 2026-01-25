@@ -275,6 +275,86 @@ export class VoiceService {
     clearCache(): number {
         return getVoiceCache().clear();
     }
+
+    /**
+     * Get preview audio as base64 data URL with caching
+     * Returns: { audio: "data:audio/mpeg;base64,...", cached: boolean } or null
+     */
+    async getPreviewData(
+        voiceId: string,
+        provider?: VoiceProvider
+    ): Promise<{ audio: string; cached: boolean } | null> {
+        const cache = getVoiceCache();
+        const providerName = provider || 'elevenlabs';
+
+        // Check cache first
+        const cachedData = cache.getPreview(voiceId, providerName);
+        if (cachedData) {
+            logger.debug({ voiceId, provider: providerName }, 'Preview served from cache');
+            return { audio: cachedData, cached: true };
+        }
+
+        // Fetch from provider
+        const p = provider
+            ? this.getProvider(provider)
+            : await this.getAvailableProvider();
+
+        if (!p) {
+            logger.warn({ voiceId }, 'No provider available for preview');
+            return null;
+        }
+
+        try {
+            const previewUrl = await p.getPreviewUrl(voiceId);
+            if (!previewUrl) {
+                logger.warn({ voiceId, provider: p.name }, 'No preview URL available');
+                return null;
+            }
+
+            // Fetch the audio
+            const response = await fetch(previewUrl);
+            if (!response.ok) {
+                logger.error({ voiceId, status: response.status }, 'Failed to fetch preview audio');
+                return null;
+            }
+
+            const audioBuffer = Buffer.from(await response.arrayBuffer());
+
+            // ElevenLabs incorrectly returns text/plain for MP3 files
+            // Detect actual content type by checking MP3 headers
+            let contentType = 'audio/mpeg'; // Default for ElevenLabs previews
+
+            // Check for MP3 ID3 header or sync frame
+            if (audioBuffer.length > 3) {
+                const isID3 = audioBuffer[0] === 0x49 && audioBuffer[1] === 0x44 && audioBuffer[2] === 0x33; // "ID3"
+                const isMP3Sync = audioBuffer[0] === 0xFF && (audioBuffer[1] & 0xE0) === 0xE0;
+
+                if (isID3 || isMP3Sync) {
+                    contentType = 'audio/mpeg';
+                    logger.debug({ voiceId, isID3, isMP3Sync }, 'Detected MP3 format');
+                } else {
+                    // Fallback to header if not MP3
+                    const headerType = response.headers.get('Content-Type');
+                    if (headerType && headerType.startsWith('audio/')) {
+                        contentType = headerType;
+                    }
+                }
+            }
+
+            // Cache the preview with correct MIME type
+            cache.setPreview(voiceId, p.name, audioBuffer, contentType);
+
+            // Return as data URL
+            const base64 = audioBuffer.toString('base64');
+            const dataUrl = `data:${contentType};base64,${base64}`;
+
+            logger.info({ voiceId, provider: p.name, sizeBytes: audioBuffer.length, contentType }, 'Preview fetched and cached');
+            return { audio: dataUrl, cached: false };
+        } catch (error) {
+            logger.error({ error, voiceId }, 'Error fetching preview audio');
+            return null;
+        }
+    }
 }
 
 // Singleton instance

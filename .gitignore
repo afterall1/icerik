@@ -39,3 +39,8 @@ coverage/
 *.db-shm
 *.db-wal
 apps/engine/data/
+
+# Test & Debug Files (Security)
+apps/dashboard/public/audio-test.html
+apps/dashboard/public/voice-diagnostic.html
+test-voice-preview.mjs

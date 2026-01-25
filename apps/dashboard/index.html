@@ -1,32 +1,37 @@
 <!doctype html>
 <html lang="tr">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- Security Headers -->
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
-    <meta name="referrer" content="strict-origin-when-cross-origin" />
-    
-    <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Security Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self' 'unsafe-inline' 'unsafe-eval';
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: https:;
+      media-src 'self' data: blob:;
       connect-src 'self' http://localhost:3000 ws://localhost:*;
     " />
-    
-    <!-- SEO -->
-    <title>İçerik Trend Engine | Viral Trend Discovery</title>
-    <meta name="description" content="Reddit tabanlı viral içerik tespit motoru. TikTok, Instagram ve YouTube için trend konuları keşfedin." />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+  <!-- SEO -->
+  <title>İçerik Trend Engine | Viral Trend Discovery</title>
+  <meta name="description"
+    content="Reddit tabanlı viral içerik tespit motoru. TikTok, Instagram ve YouTube için trend konuları keşfedin." />
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

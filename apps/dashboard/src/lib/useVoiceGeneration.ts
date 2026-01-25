@@ -16,7 +16,7 @@ import type {
 } from './voiceTypes';
 import { generateTextHash, generateAudioCacheId } from './voiceTypes';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = '/api';
 
 /**
  * Hook return type

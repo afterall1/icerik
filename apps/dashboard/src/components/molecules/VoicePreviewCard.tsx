@@ -39,14 +39,16 @@ export function VoicePreviewCard({
     const [status, setStatus] = useState<PlaybackStatus>('idle');
     const [errorMsg, setErrorMsg] = useState('');
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const blobUrlRef = useRef<string | null>(null);
+    const dataUrlRef = useRef<string | null>(null);
 
-    // Handle play/pause preview - simplified logic matching test page
+    // Handle play/pause preview - uses backend-cached base64 data URL
     const handlePlayClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        console.log('[VoicePreviewCard] handlePlayClick called for:', voice.name, voice.id);
 
         // If playing, stop
         if (status === 'playing' && audioRef.current) {
+            console.log('[VoicePreviewCard] Stopping playback');
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
             setStatus('idle');
@@ -54,58 +56,118 @@ export function VoicePreviewCard({
         }
 
         // If already loading, ignore
-        if (status === 'loading') return;
+        if (status === 'loading') {
+            console.log('[VoicePreviewCard] Already loading, ignoring click');
+            return;
+        }
 
         // Cleanup previous audio
         if (audioRef.current) {
+            console.log('[VoicePreviewCard] Cleaning up previous audio');
             audioRef.current.pause();
             audioRef.current.onended = null;
             audioRef.current.onerror = null;
             audioRef.current = null;
-        }
-        if (blobUrlRef.current) {
-            URL.revokeObjectURL(blobUrlRef.current);
-            blobUrlRef.current = null;
         }
 
         setStatus('loading');
         setErrorMsg('');
 
         try {
-            // Fetch audio from proxy endpoint
-            const url = `http://localhost:3000/api/voice/preview/${voice.id}?provider=${voice.provider}`;
+            // If we already have the data URL cached locally, try to reuse it
+            if (dataUrlRef.current) {
+                console.log('[VoicePreviewCard] Using cached dataUrl');
+                try {
+                    const audio = new Audio(dataUrlRef.current);
+                    audioRef.current = audio;
+
+                    // Create a promise that rejects on error, resolves on canplaythrough
+                    const canPlay = new Promise<void>((resolve, reject) => {
+                        audio.oncanplaythrough = () => resolve();
+                        audio.onerror = () => reject(new Error(audio.error?.message || 'Playback error'));
+                    });
+
+                    audio.onended = () => {
+                        console.log('[VoicePreviewCard] Audio ended');
+                        setStatus('idle');
+                    };
+
+                    audio.load();
+
+                    // Wait for audio to be ready (with timeout)
+                    await Promise.race([
+                        canPlay,
+                        new Promise<void>((_, reject) => setTimeout(() => reject(new Error('Load timeout')), 5000))
+                    ]);
+
+                    await audio.play();
+                    setStatus('playing');
+                    console.log('[VoicePreviewCard] Playing from cache');
+                    return;
+                } catch (cacheError) {
+                    // Cache is corrupted or playback failed - clear it and fetch fresh
+                    console.error('[VoicePreviewCard] Cached audio failed, clearing cache:', cacheError);
+                    dataUrlRef.current = null;
+                    if (audioRef.current) {
+                        audioRef.current.pause();
+                        audioRef.current = null;
+                    }
+                    // Fall through to fetch fresh data
+                }
+            }
+
+            // Fetch base64 data URL from backend (cached for 7 days)
+            const url = `/api/voice/preview/${voice.id}?provider=${voice.provider}`;
+            console.log('[VoicePreviewCard] Fetching:', url);
             const response = await fetch(url);
+            console.log('[VoicePreviewCard] Response status:', response.status);
 
             if (!response.ok) {
+                const text = await response.text();
+                console.error('[VoicePreviewCard] HTTP error:', response.status, text);
                 throw new Error(`HTTP ${response.status}`);
             }
 
-            const buffer = await response.arrayBuffer();
+            const json = await response.json();
+            console.log('[VoicePreviewCard] JSON parsed, success:', json.success, 'cached:', json.data?.cached);
 
-            if (buffer.byteLength < 100) {
-                throw new Error('Audio data too small');
+            if (!json.success || !json.data?.audio) {
+                console.error('[VoicePreviewCard] API error:', json.error);
+                throw new Error(json.error || 'No audio data');
             }
 
-            // Create blob with explicit MIME type
-            const blob = new Blob([buffer], { type: 'audio/mpeg' });
-            const blobUrl = URL.createObjectURL(blob);
-            blobUrlRef.current = blobUrl;
+            // Store data URL for reuse
+            const dataUrl = json.data.audio;
+            dataUrlRef.current = dataUrl;
+            console.log('[VoicePreviewCard] Data URL length:', dataUrl.length, 'MIME:', dataUrl.split(';')[0]);
 
-            // Create and configure audio element
-            const audio = new Audio(blobUrl);
+            // Create and configure audio element with data URL (no blob needed!)
+            const audio = new Audio(dataUrl);
             audioRef.current = audio;
 
-            audio.onended = () => setStatus('idle');
-            audio.onerror = () => {
+            audio.onloadstart = () => console.log('[VoicePreviewCard] Audio: loadstart');
+            audio.onloadedmetadata = () => console.log('[VoicePreviewCard] Audio: loadedmetadata, duration:', audio.duration);
+            audio.oncanplay = () => console.log('[VoicePreviewCard] Audio: canplay');
+            audio.onended = () => {
+                console.log('[VoicePreviewCard] Audio: ended');
+                setStatus('idle');
+            };
+            audio.onerror = (e) => {
+                console.error('[VoicePreviewCard] Audio error:', e, 'code:', audio.error?.code, 'message:', audio.error?.message);
                 setStatus('error');
-                setErrorMsg('Playback failed');
+                setErrorMsg(audio.error?.message || 'Playback failed');
             };
 
-            // Play
+            // Critical: call load() for React/dynamic src compatibility
+            console.log('[VoicePreviewCard] Calling audio.load()');
+            audio.load();
+            console.log('[VoicePreviewCard] Calling audio.play()');
             await audio.play();
+            console.log('[VoicePreviewCard] Playing successfully');
             setStatus('playing');
 
         } catch (err) {
+            console.error('[VoicePreviewCard] Catch error:', err);
             setStatus('error');
             setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
         }

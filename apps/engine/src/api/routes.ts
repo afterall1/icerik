@@ -1603,7 +1603,8 @@ export function createApiRouter(): Hono {
 
     /**
      * GET /api/voice/preview/:voiceId
-     * Stream preview audio for a voice (proxies external URL to bypass CORS)
+     * Get preview audio as base64 data URL (cached for 7 days)
+     * Returns JSON: { success: true, data: { audio: "data:audio/mpeg;base64,...", cached: bool } }
      */
     api.get('/voice/preview/:voiceId', async (c) => {
         try {
@@ -1621,9 +1622,9 @@ export function createApiRouter(): Hono {
                 }, 400);
             }
 
-            const previewUrl = await voiceService.getPreviewUrl(voiceId, providerParam);
+            const result = await voiceService.getPreviewData(voiceId, providerParam);
 
-            if (!previewUrl) {
+            if (!result) {
                 return c.json({
                     success: false,
                     error: 'Preview not available for this voice',
@@ -1631,36 +1632,15 @@ export function createApiRouter(): Hono {
                 }, 404);
             }
 
-            // Proxy the audio to bypass CORS
-            const audioResponse = await fetch(previewUrl);
+            logger.debug({ voiceId, cached: result.cached }, 'Serving voice preview');
 
-            if (!audioResponse.ok) {
-                return c.json({
-                    success: false,
-                    error: `Failed to fetch preview audio: ${audioResponse.status}`,
-                    timestamp: new Date().toISOString(),
-                }, 502);
-            }
-
-            const audioBuffer = await audioResponse.arrayBuffer();
-            const contentType = audioResponse.headers.get('Content-Type') || 'audio/mpeg';
-
-            // Log for debugging
-            logger.debug({ contentType, size: audioBuffer.byteLength }, 'Serving voice preview audio');
-
-            // Create explicit Headers object
-            const headers = new Headers();
-            headers.set('Content-Type', contentType);
-            headers.set('Content-Length', audioBuffer.byteLength.toString());
-            headers.set('Cache-Control', 'public, max-age=86400');
-            headers.set('Access-Control-Allow-Origin', 'http://localhost:5173');
-            headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-            headers.set('Access-Control-Allow-Headers', 'Content-Type');
-
-            // Return Response with Buffer body
-            return new Response(Buffer.from(audioBuffer), {
-                status: 200,
-                headers,
+            return c.json({
+                success: true,
+                data: {
+                    audio: result.audio,
+                    cached: result.cached,
+                },
+                timestamp: new Date().toISOString(),
             });
         } catch (error) {
             logger.error({ error }, 'Failed to get voice preview');

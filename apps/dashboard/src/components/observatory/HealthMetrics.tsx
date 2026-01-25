@@ -9,7 +9,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Heart, Server, Brain, Database, Wifi, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Health status types

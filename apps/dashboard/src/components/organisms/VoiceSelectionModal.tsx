@@ -14,7 +14,7 @@ import { VoicePreviewCard } from '../molecules/VoicePreviewCard';
 import type { Voice, VoiceProvider, VoiceListResponse } from '../../lib/voiceTypes';
 import { useVoiceSelection } from '../../lib/useVoiceSelection';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = '/api';
 
 interface VoiceSelectionModalProps {
     /** Whether modal is open */

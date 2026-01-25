@@ -48,7 +48,7 @@ export function AudioTestButton({ voiceId, voiceName, provider }: AudioTestButto
 
         try {
             // Fetch audio
-            const url = `http://localhost:3000/api/voice/preview/${voiceId}?provider=${provider}`;
+            const url = `/api/voice/preview/${voiceId}?provider=${provider}`;
             console.log('[AudioTest] Fetching:', url);
 
             const res = await fetch(url);

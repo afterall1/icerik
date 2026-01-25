@@ -90,8 +90,23 @@ export class VoiceCache {
             CREATE INDEX IF NOT EXISTS idx_voice_cache_voice_id ON voice_cache(voice_id);
             CREATE INDEX IF NOT EXISTS idx_voice_cache_created_at ON voice_cache(created_at);
             CREATE INDEX IF NOT EXISTS idx_voice_cache_last_accessed ON voice_cache(last_accessed_at);
+
+            -- Preview cache table for voice sample audio (7 day TTL)
+            CREATE TABLE IF NOT EXISTS voice_previews (
+                voice_id TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                audio_base64 TEXT NOT NULL,
+                content_type TEXT NOT NULL DEFAULT 'audio/mpeg',
+                size_bytes INTEGER NOT NULL,
+                fetched_at TEXT NOT NULL,
+                access_count INTEGER DEFAULT 1,
+                PRIMARY KEY (voice_id, provider)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_voice_previews_fetched_at ON voice_previews(fetched_at);
         `);
     }
+
 
     /**
      * Get cached audio by text and voice
@@ -296,6 +311,142 @@ export class VoiceCache {
     close(): void {
         this.db.close();
         logger.info('Voice cache closed');
+    }
+
+    // ============================================
+    // PREVIEW CACHE METHODS (7 day TTL)
+    // ============================================
+
+    /** Preview cache TTL in days */
+    private static readonly PREVIEW_TTL_DAYS = 7;
+
+    /**
+     * Check if preview is cached for a voice
+     */
+    hasPreview(voiceId: string, provider: VoiceProvider): boolean {
+        try {
+            const row = this.db.prepare(`
+                SELECT fetched_at FROM voice_previews 
+                WHERE voice_id = ? AND provider = ?
+            `).get(voiceId, provider) as { fetched_at: string } | undefined;
+
+            if (!row) return false;
+
+            // Check TTL
+            const fetchedAt = new Date(row.fetched_at);
+            const expiresAt = new Date(fetchedAt.getTime() + VoiceCache.PREVIEW_TTL_DAYS * 24 * 60 * 60 * 1000);
+            return new Date() < expiresAt;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Get cached preview audio as base64 data URL
+     * Returns: data:audio/mpeg;base64,... or null if not cached
+     */
+    getPreview(voiceId: string, provider: VoiceProvider): string | null {
+        try {
+            const row = this.db.prepare(`
+                SELECT audio_base64, content_type, fetched_at 
+                FROM voice_previews 
+                WHERE voice_id = ? AND provider = ?
+            `).get(voiceId, provider) as {
+                audio_base64: string;
+                content_type: string;
+                fetched_at: string;
+            } | undefined;
+
+            if (!row) return null;
+
+            // Check TTL
+            const fetchedAt = new Date(row.fetched_at);
+            const expiresAt = new Date(fetchedAt.getTime() + VoiceCache.PREVIEW_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+            if (new Date() > expiresAt) {
+                // Expired, delete and return null
+                this.deletePreview(voiceId, provider);
+                logger.debug({ voiceId, provider }, 'Preview cache expired');
+                return null;
+            }
+
+            // Update access count
+            this.db.prepare(`
+                UPDATE voice_previews 
+                SET access_count = access_count + 1
+                WHERE voice_id = ? AND provider = ?
+            `).run(voiceId, provider);
+
+            logger.debug({ voiceId, provider }, 'Preview cache HIT');
+            return `data:${row.content_type};base64,${row.audio_base64}`;
+        } catch (error) {
+            logger.error({ error, voiceId, provider }, 'Failed to get preview cache');
+            return null;
+        }
+    }
+
+    /**
+     * Store preview audio in cache
+     */
+    setPreview(
+        voiceId: string,
+        provider: VoiceProvider,
+        audioBuffer: Buffer,
+        contentType: string = 'audio/mpeg'
+    ): boolean {
+        try {
+            const now = new Date().toISOString();
+            const base64 = audioBuffer.toString('base64');
+
+            this.db.prepare(`
+                INSERT OR REPLACE INTO voice_previews 
+                (voice_id, provider, audio_base64, content_type, size_bytes, fetched_at, access_count)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+            `).run(voiceId, provider, base64, contentType, audioBuffer.length, now);
+
+            logger.debug({ voiceId, provider, sizeBytes: audioBuffer.length }, 'Preview cache SET');
+            return true;
+        } catch (error) {
+            logger.error({ error, voiceId, provider }, 'Failed to set preview cache');
+            return false;
+        }
+    }
+
+    /**
+     * Delete a preview cache entry
+     */
+    deletePreview(voiceId: string, provider: VoiceProvider): boolean {
+        try {
+            const result = this.db.prepare(`
+                DELETE FROM voice_previews WHERE voice_id = ? AND provider = ?
+            `).run(voiceId, provider);
+            return result.changes > 0;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Cleanup expired preview entries
+     */
+    cleanupPreviews(): number {
+        try {
+            const expiryDate = new Date(
+                Date.now() - VoiceCache.PREVIEW_TTL_DAYS * 24 * 60 * 60 * 1000
+            ).toISOString();
+
+            const result = this.db.prepare(`
+                DELETE FROM voice_previews WHERE fetched_at < ?
+            `).run(expiryDate);
+
+            if (result.changes > 0) {
+                logger.info({ deleted: result.changes }, 'Preview cache cleanup completed');
+            }
+            return result.changes;
+        } catch (error) {
+            logger.error({ error }, 'Failed to cleanup preview cache');
+            return 0;
+        }
     }
 }
 

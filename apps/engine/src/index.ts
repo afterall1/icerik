@@ -40,9 +40,16 @@ async function main(): Promise<void> {
         // Create Hono app
         const app = new Hono();
 
-        // Mount API routes
-        const api = createApiRouter();
-        app.route('/api', api);
+        // Mount API routes with error handling
+        try {
+            const api = createApiRouter();
+            app.route('/api', api);
+            appLogger.info('API routes mounted successfully');
+        } catch (apiError) {
+            appLogger.error({ error: apiError }, 'CRITICAL: Failed to create API router!');
+            // Create fallback error endpoint
+            app.get('/api/*', (c) => c.json({ error: 'API router failed to initialize' }, 500));
+        }
 
         // Root endpoint with enhanced status
         app.get('/', (c) => {
