@@ -194,9 +194,12 @@ origin: env.CORS_ORIGINS?.split(',') || ['https://localhost']
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   font-src 'self' https://fonts.gstatic.com;
   img-src 'self' data: https:;
+  media-src 'self' data: blob:;
   connect-src 'self' http://localhost:3000 ws://localhost:*;
 " />
 ```
+
+> **Note**: `media-src 'self' data: blob:` directive added in v1.21.0 to allow base64 audio playback for voice preview feature.
 
 ### XSS Prevention
 

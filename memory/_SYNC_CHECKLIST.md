@@ -1,7 +1,7 @@
 # 🔄 End-of-Session Sync Checklist
 
 > **Proje**: İçerik Trend Engine  
-> **Son Sync**: 25 Ocak 2026, 15:58
+> **Son Sync**: 25 Ocak 2026, 22:17
 
 Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak doldurulmalıdır.
 
@@ -10,40 +10,42 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 ## 1. Kod Değişiklikleri → Dokümantasyon Güncellemeleri
 
 - [x] Store/State değişti mi? → Hayır
-- [x] Yeni API endpoint eklendi mi? → Evet (voice/list, voice/generate, voice/preview)
-- [x] Shared types değişti mi? → Evet (voice types)
-- [x] Yeni pattern/mimari eklendi mi? → Evet (TTS multi-provider, audio proxy)
-- [x] Feature logic değişti mi? → Evet (Voice Generation System)
+- [x] Yeni API endpoint eklendi mi? → Hayır (önceki oturumda eklendi)
+- [x] Shared types değişti mi? → Hayır
+- [x] Yeni pattern/mimari eklendi mi? → Evet (CSP media-src)
+- [x] Feature logic değişti mi? → Evet (VoicePreviewCard cache retry)
 
 ## 2. Bütünlük Kontrolü
 
-- [x] API dokümantasyonu gerçek kodu yansıtıyor mu? → Güncellenecek
-- [x] Kritik kararlar ADR olarak kaydedildi mi? → Beklemede
+- [x] API dokümantasyonu gerçek kodu yansıtıyor mu? → Beklemede
+- [x] Kritik kararlar ADR olarak kaydedildi mi? → CSP kararı kaydedilmeli
 - [x] `active_context.md` YENİ bir asistan için yeterince detaylı mı? ✅
 
 ## 3. Doğrulama
 
-- [x] Test sonuçları kaydedildi mi? → Backend verified (31KB MP3) ✅
+- [x] Test sonuçları kaydedildi mi? → ✅ Voice preview working
 - [x] Changelog güncellendi mi? → Beklemede (v1.21.0-dev)
-- [x] Roadmap/active_context güncellendi mi? → Phase 24 ✅
+- [x] Roadmap/active_context güncellendi mi? → Phase 24 ✅ COMPLETE
 
 ---
 
-## 4. Bu Oturum Güncellemeleri (25 Ocak 2026, 15:58)
+## 4. Bu Oturum Güncellemeleri (25 Ocak 2026, 22:17)
 
 | Dosya | Güncelleme |
 |-------|------------|
-| `apps/engine/src/services/voiceProviders.ts` | NEW - Multi-provider abstraction |
-| `apps/engine/src/services/VoiceService.ts` | NEW - TTS service with fallback |
-| `apps/engine/src/services/VoiceCache.ts` | NEW - SQLite audio cache |
-| `apps/engine/src/api/routes.ts` | Voice endpoints added |
-| `apps/dashboard/src/lib/voiceTypes.ts` | NEW - Voice types |
-| `apps/dashboard/src/lib/useVoiceSelection.ts` | NEW - IndexedDB hook |
-| `apps/dashboard/src/lib/useVoiceGeneration.ts` | NEW - API hook |
-| `apps/dashboard/src/components/molecules/VoicePlayer.tsx` | NEW - Audio player |
-| `apps/dashboard/src/components/molecules/VoicePreviewCard.tsx` | NEW - Preview card (simplified) |
-| `apps/dashboard/src/components/organisms/VoiceSelectionModal.tsx` | NEW - Selection modal |
-| `memory/active_context.md` | Phase 24 in progress |
+| `apps/dashboard/index.html` | CSP media-src directive added |
+| `apps/dashboard/src/components/molecules/VoicePreviewCard.tsx` | Cache retry mechanism + logging |
+| `apps/dashboard/src/components/organisms/VoiceSelectionModal.tsx` | Relative URL fix |
+| `apps/dashboard/src/components/molecules/AudioTestButton.tsx` | Relative URL fix |
+| `apps/dashboard/src/lib/useVoiceGeneration.ts` | Relative URL fix |
+| `apps/dashboard/src/lib/observatoryApi.ts` | Relative URL fix |
+| `apps/dashboard/src/components/observatory/HealthMetrics.tsx` | Relative URL fix |
+| `apps/dashboard/src/lib/useVisualSearch.ts` | Relative URL fix |
+| `apps/dashboard/public/audio-test.html` | NEW - Audio test page |
+| `apps/dashboard/public/voice-diagnostic.html` | NEW - Diagnostic page |
+| `apps/engine/src/voice/VoiceService.ts` | getPreviewData MP3 detection |
+| `apps/engine/src/voice/VoiceCache.ts` | Preview cache methods (7d TTL) |
+| `apps/engine/src/api/routes.ts` | Preview endpoint JSON response |
 
 ---
 
@@ -51,9 +53,12 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 
 | Dosya | Güncelleme | 
 |-------|-----------|
-| Visual Selection System | Phase 23 complete |
-| useVisualSelections.ts | IndexedDB persistence |
-| SelectedVisualsPreview.tsx | Section preview |
+| VoiceService.ts | Multi-provider TTS |
+| VoiceCache.ts | SQLite cache |
+| Voice API Endpoints | 3 endpoints added |
+| voiceTypes.ts | Frontend types |
+| useVoiceSelection.ts | IndexedDB hook |
+| VoicePreviewCard.tsx | Initial implementation |
 
 ---
 
@@ -64,7 +69,7 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 # 1. active_context.md güncelle ✅
 # 2. _SYNC_CHECKLIST.md güncelle ✅
 # 3. git add memory/
-# 4. git commit -m "chore: memory sync - 2026-01-25 (Phase 24 in progress)"
+# 4. git commit -m "chore: memory sync - 2026-01-25 (Phase 24 complete)"
 ```
 
 ---
@@ -73,15 +78,15 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 
 | Metric | Before | After |
 |--------|--------|-------|
-| API Endpoints | 100% | 90% (voice endpoints pending) |
-| Type Documentation | 100% | 90% (voice types pending) |
-| Architecture Docs | 100% | 95% (TTS doc pending) |
-| Security Docs | 100% | 100% |
+| API Endpoints | 90% | 90% |
+| Type Documentation | 90% | 90% |
+| Architecture Docs | 95% | 95% |
+| Security Docs | 100% | 100% (CSP updated in code) |
 | Image Discovery | 100% | 100% |
 | Visual Search AI | 100% | 100% |
 | Visual Selection | 100% | 100% |
-| Voice Generation | 0% | 80% (frontend testing) |
-| Overall | 100% | 95% |
+| Voice Generation | 80% | 100% ✅ |
+| Overall | 95% | 97% |
 
 ---
 
@@ -107,7 +112,7 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 | Rate Limiting | ✅ Active (100/min general, 20/min AI) |
 | Input Validation | ✅ Active (Zod schemas) |
 | Security Headers | ✅ Active (X-Frame-Options, etc.) |
-| CSP | ✅ Active (index.html) |
+| CSP | ✅ Active (index.html - media-src added) |
 | XSS Prevention | ✅ Active (sanitize.ts) |
 | Security Logging | ✅ Active (pattern detection) |
 
@@ -149,16 +154,18 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 
 ---
 
-## 🔊 Voice Generation System Status (Phase 24 IN PROGRESS)
+## 🔊 Voice Generation System Status (Phase 24 ✅ COMPLETE)
 
 | Component | Status |
 |-----------|--------|
-| VoiceService.ts | ✅ Active (multi-provider) |
-| VoiceCache.ts | ✅ Active (SQLite cache) |
+| VoiceService.ts | ✅ Active (multi-provider + MP3 detection) |
+| VoiceCache.ts | ✅ Active (SQLite cache + preview) |
 | Voice API Endpoints | ✅ Active (3 endpoints) |
 | voiceTypes.ts | ✅ Active (frontend types) |
 | useVoiceSelection.ts | ✅ Active (IndexedDB) |
-| VoicePreviewCard.tsx | ✅ Active (simplified) |
+| VoicePreviewCard.tsx | ✅ Active (cache retry) |
 | VoiceSelectionModal.tsx | ✅ Active |
-| Backend Verification | ✅ Passed (31KB MP3) |
-| Frontend Testing | 🔄 In Progress |
+| Backend Verification | ✅ Passed |
+| Frontend Testing | ✅ PASSED |
+| CSP Configuration | ✅ media-src data: blob: |
+| Diagnostik Tools | ✅ audio-test.html, voice-diagnostic.html |
