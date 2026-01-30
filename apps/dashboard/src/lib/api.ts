@@ -1,5 +1,9 @@
 const API_BASE = '/api';
 
+// Direct backend URL for large payload endpoints (bypasses Vite proxy body limit)
+// Video generation sends base64 audio which can exceed proxy limits
+const VIDEO_API_BASE = import.meta.env.DEV ? 'http://localhost:3000/api' : '/api';
+
 export interface Category {
     id: string;
     label: string;
@@ -1037,7 +1041,8 @@ export const videoApi = {
      * Generate a video from script, images, and audio
      */
     async generate(project: VideoProjectInput): Promise<VideoGenerationResult> {
-        const response = await fetch(`${API_BASE}/video/generate`, {
+        // Use VIDEO_API_BASE to bypass Vite proxy body limit for large base64 audio
+        const response = await fetch(`${VIDEO_API_BASE}/video/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

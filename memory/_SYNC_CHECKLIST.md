@@ -1,7 +1,7 @@
 # 🔄 End-of-Session Sync Checklist
 
 > **Proje**: İçerik Trend Engine  
-> **Son Sync**: 31 Ocak 2026, 00:27
+> **Son Sync**: 31 Ocak 2026, 01:48
 
 Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak doldurulmalıdır.
 
@@ -9,52 +9,60 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 
 ## 1. Kod Değişiklikleri → Dokümantasyon Güncellemeleri
 
-- [x] Store/State değişti mi? → Evet (useVoiceGeneration: audioBlob)
+- [x] Store/State değişti mi? → Hayır
 - [x] Yeni API endpoint eklendi mi? → Hayır
 - [x] Shared types değişti mi? → Hayır
-- [x] Yeni pattern/mimari eklendi mi? → Evet (E2E Testing, CI/CD)
-- [x] Feature logic değişti mi? → Evet (CSP blob fix, infinite loop fix)
-- [x] Bug fix yapıldı mı? → Evet (2 Critical: CSP, useVideoJobs)
+- [x] Yeni pattern/mimari eklendi mi? → Evet (3-layer body limit fix)
+- [x] Feature logic değişti mi? → Evet (VIDEO_API_BASE proxy bypass)
+- [x] Bug fix yapıldı mı? → Evet (413 Payload Too Large)
 
 ## 2. Bütünlük Kontrolü
 
 - [x] API dokümantasyonu gerçek kodu yansıtıyor mu? → ✅ Güncel
-- [x] Kritik kararlar ADR olarak kaydedildi mi? → ✅ E2E testing mimarisi
+- [x] Kritik kararlar ADR olarak kaydedildi mi? → ✅ Body limit config
 - [x] `active_context.md` YENİ bir asistan için yeterince detaylı mı? ✅
 
 ## 3. Doğrulama
 
-- [x] Test sonuçları kaydedildi mi? → ✅ E2E testler oluşturuldu
-- [x] Changelog güncellendi mi? → Beklemede (v1.24.0)
+- [x] Test sonuçları kaydedildi mi? → ⏳ User testing
+- [x] Changelog güncellendi mi? → Beklemede (v1.24.2)
 - [x] Roadmap/active_context güncellendi mi? → ✅
 
 ---
 
-## 4. Bu Oturum Güncellemeleri (31 Ocak 2026, 00:27)
+## 4. Bu Oturum Güncellemeleri (31 Ocak 2026, 01:48)
 
 | Dosya | Güncelleme |
 |-------|------------|
-| `e2e/helpers/test-helpers.ts` | +108 satır: mockScriptsApi, mockImagesApi, mockVideoGenerationApis |
-| `e2e/video-generation.spec.ts` | 5 test skip + beforeEach mock entegrasyonu |
+| `engine/src/api/routes.ts` | `maxBodySize: 250 * 1024 * 1024` |
+| `engine/src/index.ts` | bodyLimit middleware (250MB) |
+| `dashboard/src/lib/api.ts` | `VIDEO_API_BASE` constant |
+| `dashboard/vite.config.ts` | Proxy error logging |
 
-### Phase 28: E2E Test Audit
+### Phase 29: 413 Payload Too Large Fix
 
-**Test Sonuçları**:
-- ✅ 7 passed (dashboard temel testler)
-- ⏭️ 7 skipped (hover bağımlı)
-- ❌ 8 failed (voice testler - aynı kök neden)
+**Kök Neden**: 3 ayrı body limit katmanı:
+1. Security Middleware (100KB) ← **ASIL SORUN**
+2. Hono bodyLimit (yoktu)
+3. Vite Proxy (~1MB)
 
-**Kök Neden**: TrendCard.tsx `sm:opacity-0 sm:group-hover:opacity-100`
-- Playwright `toBeVisible()` → `opacity:0` = görünmez
-
-**Çözüm Önerisi**:
-1. `data-testid="generate-script-btn"` ekle
-2. `toBeAttached()` kullan
-3. `force: true` ile click
+**Çözüm**:
+1. `routes.ts`: maxBodySize → 250MB
+2. `index.ts`: bodyLimit middleware eklendi
+3. `api.ts`: VIDEO_API_BASE ile proxy bypass
 
 ---
 
-## 5. Önceki Oturum Özeti (Phase 27, 30 Ocak 2026)
+## 5. Önceki Oturum Özeti (Phase 28, 31 Ocak 2026, 00:27)
+
+| Dosya | Güncelleme |
+|-------|------------|
+| `e2e/helpers/test-helpers.ts` | +108 satır mock functions |
+| `e2e/video-generation.spec.ts` | 5 test skip + mock entegrasyonu |
+
+---
+
+## 6. Phase 27 Özeti (30 Ocak 2026)
 
 | Dosya | Güncelleme |
 |-------|------------|

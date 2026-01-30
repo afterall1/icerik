@@ -68,7 +68,8 @@ export function createApiRouter(): Hono {
         enableHsts: isProduction,
         generalRateLimit: { maxRequests: 100, windowMs: 60000 },
         aiRateLimit: { maxRequests: 20, windowMs: 60000 },
-        maxBodySize: 102400, // 100KB
+        // 250MB for video generation (base64 audio can be large)
+        maxBodySize: 250 * 1024 * 1024,
     });
 
     // 1. Security headers (first, always applied)

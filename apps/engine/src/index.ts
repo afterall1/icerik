@@ -10,6 +10,7 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { prettyJSON } from 'hono/pretty-json';
+import { bodyLimit } from 'hono/body-limit';
 import { createApiRouter } from './api/index.js';
 import { getWorker } from './worker/index.js';
 import { closeDatabase, getDatabaseStats } from './cache/index.js';
@@ -69,6 +70,20 @@ async function main(): Promise<void> {
 
         // Enable pretty JSON output in development
         app.use('*', prettyJSON());
+
+        // Increase body size limit for video/voice routes (250MB for base64 audio)
+        // This prevents 413 Payload Too Large errors when sending audio data
+        app.use('/api/video/*', bodyLimit({
+            maxSize: 250 * 1024 * 1024, // 250MB
+            onError: (c) => {
+                appLogger.warn('Request body too large for video endpoint');
+                return c.json({
+                    success: false,
+                    error: 'Payload too large. Maximum size is 250MB.',
+                    timestamp: new Date().toISOString(),
+                }, 413);
+            }
+        }));
 
         // Mount API routes with error handling
         try {
