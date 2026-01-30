@@ -7,7 +7,7 @@
  * @module e2e/helpers
  */
 
-import { Page, Route } from '@playwright/test';
+import { Page, Route, expect } from '@playwright/test';
 
 // =============================================================================
 // Types
@@ -360,20 +360,56 @@ export async function selectCategory(page: Page, category: string) {
 }
 
 /**
- * Generate script for first trend
+ * Generate script for first trend using stable testid selector
+ * Uses force:true to bypass CSS opacity:0 on desktop viewports
  */
 export async function generateScriptForFirstTrend(page: Page) {
     const trendCard = page.locator('[class*="Card"]').first();
-    await trendCard.hover();
+    await expect(trendCard).toBeVisible({ timeout: 10000 });
 
-    const scriptButton = page.locator('button:has-text("Script")').first();
-    await scriptButton.click();
+    // Hover to trigger potential CSS transitions
+    await trendCard.hover();
+    await page.waitForTimeout(300);
+
+    // Use data-testid selector with toBeAttached (not toBeVisible)
+    // Button may have opacity:0 on desktop viewport
+    const scriptButton = trendCard.locator('[data-testid="generate-script-btn"]');
+    await expect(scriptButton).toBeAttached({ timeout: 5000 });
+
+    // Force click bypasses opacity:0 CSS
+    await scriptButton.click({ force: true });
 
     // Wait for API response
     await waitForApiResponse(page, '/api/scripts/generate', 60000);
 
     // Wait for platform cards
     await page.waitForSelector('text=TikTok', { timeout: 15000 });
+}
+
+/**
+ * Full setup with API isolation for video/voice tests
+ * Includes all necessary mocks and waits for script generation
+ */
+export async function setupWithGeneratedScript(page: Page) {
+    // Apply ALL mocks before navigation
+    await mockVideoGenerationApis(page);
+
+    // Navigate and wait for load
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // Select technology category
+    await page.click('button:has-text("Teknoloji")');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for trend cards
+    await expect(page.locator('[class*="Card"]').first()).toBeVisible({ timeout: 15000 });
+
+    // Generate script with stable method
+    await generateScriptForFirstTrend(page);
+
+    // Wait for platform cards to confirm script generation
+    await expect(page.locator('text=TikTok').first()).toBeVisible({ timeout: 15000 });
 }
 
 // =============================================================================
