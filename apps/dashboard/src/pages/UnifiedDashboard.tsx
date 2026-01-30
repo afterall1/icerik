@@ -18,6 +18,8 @@ import { TrendGrid } from '../components/organisms';
 import { Activity, RefreshCw, Sparkles, TrendingUp, Zap, Telescope } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../components/atoms';
+import { VideoJobsIndicator } from '../components/molecules/VideoJobsIndicator';
+import { VideoJobNotifications } from '../components/organisms/VideoJobNotifications';
 
 // Navigation to Observatory
 const navigateToObservatory = () => {
@@ -147,6 +149,9 @@ export function UnifiedDashboard() {
                             isLoading={trendsFetching && !!searchQuery}
                             className="flex-1 max-w-xl"
                         />
+
+                        {/* Video Jobs Indicator */}
+                        <VideoJobsIndicator />
 
                         <Button
                             variant="secondary"
@@ -279,6 +284,9 @@ export function UnifiedDashboard() {
                     </div>
                 </div>
             </main>
+
+            {/* Video Job Notifications (Toast) */}
+            <VideoJobNotifications />
         </div>
     );
 }

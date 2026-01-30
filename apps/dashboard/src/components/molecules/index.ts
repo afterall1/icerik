@@ -18,3 +18,8 @@ export { AnalyticsPanel } from './AnalyticsPanel';
 export { ImageCard, type ValidatedImage } from './ImageCard';
 export { ImageSuggestionsPanel } from './ImageSuggestionsPanel';
 export { VisualDiscoveryPanel, type SectionType } from './VisualDiscoveryPanel';
+export { VideoGenerationButton } from './VideoGenerationButton';
+export { VideoProgressIndicator } from './VideoProgressIndicator';
+export { VideoPreviewCard } from './VideoPreviewCard';
+export { VideoJobsIndicator } from './VideoJobsIndicator';
+

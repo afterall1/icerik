@@ -917,3 +917,207 @@ export const metricsApi = {
         return data.data as AIMetricsResponse;
     },
 };
+
+// ============================================================
+// Video Generation Types & API (Phase 26)
+// ============================================================
+
+/**
+ * Video job status
+ */
+export type VideoJobStatus =
+    | 'queued'
+    | 'building-timeline'
+    | 'generating-captions'
+    | 'composing-video'
+    | 'encoding'
+    | 'complete'
+    | 'failed';
+
+/**
+ * Caption style type
+ */
+export type CaptionStyleType = 'hormozi' | 'classic' | 'minimal';
+
+/**
+ * Transition style type
+ */
+export type TransitionStyleType = 'smooth' | 'dynamic' | 'minimal';
+
+/**
+ * Video generation options
+ */
+export interface VideoGenerationOptions {
+    captionStyle: CaptionStyleType;
+    transitionStyle: TransitionStyleType;
+    kenBurnsEnabled: boolean;
+    backgroundMusicVolume: number;
+    audioDucking: boolean;
+}
+
+/**
+ * Video project input
+ */
+export interface VideoProjectInput {
+    id?: string;
+    platform: Platform;
+    title: string;
+    script: {
+        hook: string;
+        body: string;
+        cta: string;
+    };
+    images: {
+        hook: string[];
+        body: string[];
+        cta: string[];
+    };
+    audio: {
+        voiceoverPath?: string;
+        voiceoverData?: string; // Base64 encoded audio
+        voiceoverDuration: number;
+        backgroundMusicPath?: string;
+    };
+    options?: Partial<VideoGenerationOptions>;
+}
+
+/**
+ * Video generation result
+ */
+export interface VideoGenerationResult {
+    success: boolean;
+    jobId: string;
+    outputPath?: string;
+    duration?: number;
+    fileSize?: number;
+    error?: string;
+    processingTimeMs?: number;
+}
+
+/**
+ * Video generation progress
+ */
+export interface VideoGenerationProgress {
+    jobId: string;
+    status: VideoJobStatus;
+    progress: number;
+    currentStep: string;
+    estimatedTimeRemaining?: number;
+}
+
+/**
+ * Status step configuration for UI
+ */
+export const VIDEO_STATUS_STEPS: Array<{ status: VideoJobStatus; label: string; emoji: string }> = [
+    { status: 'queued', label: 'Sırada', emoji: '⏳' },
+    { status: 'building-timeline', label: 'Timeline', emoji: '📐' },
+    { status: 'generating-captions', label: 'Altyazı', emoji: '💬' },
+    { status: 'composing-video', label: 'Birleştirme', emoji: '🎬' },
+    { status: 'encoding', label: 'Encode', emoji: '📦' },
+    { status: 'complete', label: 'Tamamlandı', emoji: '✅' },
+    { status: 'failed', label: 'Hata', emoji: '❌' },
+];
+
+/**
+ * Default video generation options
+ */
+export const DEFAULT_VIDEO_OPTIONS: VideoGenerationOptions = {
+    captionStyle: 'hormozi',
+    transitionStyle: 'smooth',
+    kenBurnsEnabled: true,
+    backgroundMusicVolume: 0.15,
+    audioDucking: true,
+};
+
+/**
+ * Video Generation API client
+ */
+export const videoApi = {
+    /**
+     * Generate a video from script, images, and audio
+     */
+    async generate(project: VideoProjectInput): Promise<VideoGenerationResult> {
+        const response = await fetch(`${API_BASE}/video/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...project,
+                options: {
+                    ...DEFAULT_VIDEO_OPTIONS,
+                    ...project.options,
+                },
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Video generation failed' }));
+            throw new Error(error.error || `API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<VideoGenerationResult> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Video generation failed');
+        }
+
+        return data.data as VideoGenerationResult;
+    },
+
+    /**
+     * Get video generation job status
+     */
+    async getStatus(jobId: string): Promise<VideoGenerationProgress> {
+        const response = await fetch(`${API_BASE}/video/status/${jobId}`);
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('Job not found');
+            }
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<VideoGenerationProgress> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to get job status');
+        }
+
+        return data.data as VideoGenerationProgress;
+    },
+
+    /**
+     * Get all video generation jobs
+     */
+    async getJobs(): Promise<VideoGenerationProgress[]> {
+        const response = await fetch(`${API_BASE}/video/jobs`);
+
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<VideoGenerationProgress[]> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to get jobs');
+        }
+
+        return data.data as VideoGenerationProgress[];
+    },
+
+    /**
+     * Clean up completed video generation jobs
+     */
+    async cleanup(): Promise<{ cleaned: number }> {
+        const response = await fetch(`${API_BASE}/video/jobs/cleanup`, {
+            method: 'POST',
+        });
+
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data: ApiResponse<{ cleaned: number }> = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to cleanup jobs');
+        }
+
+        return data.data as { cleaned: number };
+    },
+};

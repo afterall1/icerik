@@ -1699,7 +1699,12 @@ export function createApiRouter(): Hono {
                 title: string;
                 script: { hook: string; body: string; cta: string };
                 images: { hook: string[]; body: string[]; cta: string[] };
-                audio: { voiceoverPath: string; voiceoverDuration: number; backgroundMusicPath?: string };
+                audio: {
+                    voiceoverPath?: string;
+                    voiceoverData?: string; // Base64 encoded audio
+                    voiceoverDuration: number;
+                    backgroundMusicPath?: string
+                };
                 options?: {
                     captionStyle?: 'hormozi' | 'classic' | 'minimal';
                     transitionStyle?: 'smooth' | 'dynamic' | 'minimal';
@@ -1710,12 +1715,41 @@ export function createApiRouter(): Hono {
             };
 
             // Validate required fields
-            if (!body.platform || !body.script || !body.images || !body.audio?.voiceoverPath) {
+            logger.info({
+                hasVoiceoverPath: !!body.audio?.voiceoverPath,
+                hasVoiceoverData: !!body.audio?.voiceoverData,
+                voiceoverPathPrefix: body.audio?.voiceoverPath?.substring(0, 50),
+                voiceoverDataPrefix: body.audio?.voiceoverData?.substring(0, 50),
+            }, 'Video generation request received');
+
+            if (!body.platform || !body.script || !body.images || (!body.audio?.voiceoverPath && !body.audio?.voiceoverData)) {
                 return c.json({
                     success: false,
-                    error: 'Missing required fields: platform, script, images, audio.voiceoverPath',
+                    error: 'Missing required fields: platform, script, images, audio.voiceoverPath or audio.voiceoverData',
                     timestamp: new Date().toISOString(),
                 }, 400);
+            }
+
+            // Handle base64 audio data - save to disk
+            let voiceoverPath = body.audio.voiceoverPath;
+            if (body.audio.voiceoverData && !voiceoverPath) {
+                const { promises: fs } = await import('fs');
+                const path = await import('path');
+
+                // Create audio directory if needed
+                const audioDir = 'data/video-audio';
+                await fs.mkdir(audioDir, { recursive: true });
+
+                // Decode base64 and save
+                const audioId = body.id || crypto.randomUUID();
+                voiceoverPath = path.join(audioDir, `${audioId}_voiceover.mp3`);
+
+                // Remove data URL prefix if present
+                const base64Data = body.audio.voiceoverData.replace(/^data:audio\/[^;]+;base64,/, '');
+                const audioBuffer = Buffer.from(base64Data, 'base64');
+
+                await fs.writeFile(voiceoverPath, audioBuffer);
+                logger.info({ voiceoverPath, size: audioBuffer.length }, 'Saved voiceover audio file');
             }
 
             const project = {
@@ -1724,7 +1758,11 @@ export function createApiRouter(): Hono {
                 title: body.title || 'Untitled Video',
                 script: body.script,
                 images: body.images,
-                audio: body.audio,
+                audio: {
+                    voiceoverPath: voiceoverPath!,
+                    voiceoverDuration: body.audio.voiceoverDuration,
+                    backgroundMusicPath: body.audio.backgroundMusicPath,
+                },
                 options: {
                     captionStyle: body.options?.captionStyle || 'hormozi',
                     transitionStyle: body.options?.transitionStyle || 'smooth',
