@@ -45,6 +45,8 @@ Hangi dosyaların güncellenmesi gerektiğini ve Documentation Health Score'u ko
 | AI quality modules | `memory/architecture/ai-quality.md` |
 | Browser storage hooks | `memory/architecture/local-storage.md` |
 | Security/Rate limiting | `memory/architecture/security.md` |
+| Voice/TTS system | `memory/architecture/voice-system.md` |
+| Video editing/FFmpeg | `memory/architecture/video-editing.md` |
 
 #### 3.3 Project State
 
@@ -119,6 +121,8 @@ memory/architecture/
 ├── knowledge-system.md  # Gemini education
 ├── ai-quality.md        # AIMetrics, Iterator, Variants
 ├── local-storage.md     # Browser storage hooks
-└── security.md          # Rate limiting, validation, CSP
+├── security.md          # Rate limiting, validation, CSP
+├── voice-system.md      # TTS providers, voice cache, BroadcastChannel
+└── video-editing.md     # FFmpeg pipeline, Ken Burns, captions
 ```
 

@@ -10,11 +10,11 @@
 import { useState, useCallback, useRef } from 'react';
 import type {
     VoiceProvider,
-    VoiceSettings,
     VoiceGenerationOptions,
     GeneratedAudio,
 } from './voiceTypes';
 import { generateTextHash, generateAudioCacheId } from './voiceTypes';
+import { sanitizeForTTS } from './textSanitizer';
 
 const API_BASE = '/api';
 
@@ -121,13 +121,16 @@ export function useVoiceGeneration(): UseVoiceGenerationReturn {
         cleanupAudioUrl();
 
         try {
+            // Sanitize text to remove visual directions like [ZOOM IN], [CUT TO] etc.
+            const cleanText = sanitizeForTTS(text);
+
             const response = await fetch(`${API_BASE}/voice/generate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    text,
+                    text: cleanText,
                     voiceId: options.voiceId,
                     provider: options.provider,
                     settings: options.settings,
@@ -188,5 +191,3 @@ export function useVoiceGeneration(): UseVoiceGenerationReturn {
         lastProvider,
     };
 }
-
-export type { UseVoiceGenerationReturn };

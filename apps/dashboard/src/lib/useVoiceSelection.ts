@@ -25,6 +25,7 @@ const DB_NAME = 'icerik_voice_selection';
 const STORE_NAME = 'voice_config';
 const DB_VERSION = 1;
 const CONFIG_KEY = 'main';
+const CHANNEL_NAME = 'icerik_voice_selection_sync';
 
 /**
  * Hook return type
@@ -81,8 +82,35 @@ export function useVoiceSelection(): UseVoiceSelectionReturn {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const dbRef = useRef<IDBDatabase | null>(null);
+    const channelRef = useRef<BroadcastChannel | null>(null);
 
-    // Load state on mount
+    // Helper to reload state from IndexedDB (used for cross-instance sync)
+    const reloadStateFromDB = useCallback(async () => {
+        try {
+            const db = dbRef.current || await openDB();
+            if (!dbRef.current) dbRef.current = db;
+
+            const transaction = db.transaction(STORE_NAME, 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.get(CONFIG_KEY);
+
+            request.onsuccess = () => {
+                if (request.result) {
+                    setState(request.result.data);
+                } else {
+                    setState(createEmptyVoiceSelectionState());
+                }
+            };
+
+            request.onerror = () => {
+                console.error('Failed to reload voice selection:', request.error);
+            };
+        } catch (err) {
+            console.error('Failed to reload voice selection from DB:', err);
+        }
+    }, []);
+
+    // Load state on mount and setup BroadcastChannel for cross-instance sync
     useEffect(() => {
         async function loadState() {
             setIsLoading(true);
@@ -119,6 +147,20 @@ export function useVoiceSelection(): UseVoiceSelectionReturn {
             }
         }
 
+        // Initialize BroadcastChannel for cross-instance sync
+        try {
+            channelRef.current = new BroadcastChannel(CHANNEL_NAME);
+            channelRef.current.onmessage = (event) => {
+                if (event.data?.type === 'VOICE_SELECTION_UPDATED') {
+                    // Another instance updated voice selection, reload from DB
+                    reloadStateFromDB();
+                }
+            };
+        } catch (err) {
+            // BroadcastChannel not supported (shouldn't happen in modern browsers)
+            console.warn('BroadcastChannel not supported:', err);
+        }
+
         loadState();
 
         return () => {
@@ -126,8 +168,12 @@ export function useVoiceSelection(): UseVoiceSelectionReturn {
                 dbRef.current.close();
                 dbRef.current = null;
             }
+            if (channelRef.current) {
+                channelRef.current.close();
+                channelRef.current = null;
+            }
         };
-    }, []);
+    }, [reloadStateFromDB]);
 
     // Persist state to IndexedDB
     const persistState = useCallback(async (newState: VoiceSelectionState): Promise<void> => {
@@ -148,6 +194,17 @@ export function useVoiceSelection(): UseVoiceSelectionReturn {
 
             store.put(record);
             setState(record.data);
+
+            // Broadcast to other instances that voice selection changed
+            try {
+                channelRef.current?.postMessage({
+                    type: 'VOICE_SELECTION_UPDATED',
+                    timestamp: Date.now(),
+                });
+            } catch (broadcastErr) {
+                // Non-critical: sync will still work on next load
+                console.warn('Failed to broadcast voice update:', broadcastErr);
+            }
         } catch (err) {
             console.error('Failed to persist voice selection:', err);
             throw new Error('Failed to save voice settings');

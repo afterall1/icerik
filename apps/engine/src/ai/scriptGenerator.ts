@@ -10,6 +10,7 @@
 import type { TrendData, ContentCategory } from '@icerik/shared';
 import { CATEGORY_VIDEO_FORMATS } from '@icerik/shared';
 import { getGeminiClient, GeminiError } from './gemini.js';
+import { sanitizeScriptText } from './scriptSanitizer.js';
 import { createChildLogger } from '../utils/logger.js';
 
 const logger = createChildLogger('scriptGenerator');
@@ -265,6 +266,11 @@ Key principles:
 - End with clear value or call to action
 - Write scripts that are easy to perform on camera
 
+CRITICAL: Do NOT include visual directions, camera cues, or editing notes in the script text.
+Examples of what NOT to include: [ZOOM IN], [ZOOM OUT], [CUT TO], [B-ROLL], [PAUSE], [TRANSITION], [SFX], [MUSIC], [VISUAL], [OVERLAY].
+The script is for SPOKEN narration only. Visual editing notes should NOT be part of the script.
+Write pure dialogue/narration that will be read aloud by a voice-over artist.
+
 You always format your response with clear [HOOK], [BODY], [CTA], [TITLE], and [HASHTAGS] sections.`;
     }
 
@@ -283,9 +289,11 @@ You always format your response with clear [HOOK], [BODY], [CTA], [TITLE], and [
         const titleMatch = response.match(/\[TITLE\]([\s\S]*?)(?=\[HASHTAGS\]|$)/i);
         const hashtagsMatch = response.match(/\[HASHTAGS\]([\s\S]*?)$/i);
 
-        const hook = hookMatch?.[1]?.trim() || '';
-        const body = bodyMatch?.[1]?.trim() || response.trim();
-        const cta = ctaMatch?.[1]?.trim() || '';
+        // Sanitize each section to remove ALL bracket annotations
+        // This removes [ZOOM IN], [TEXT: "..."], [TRANSITION: ...], etc.
+        const hook = sanitizeScriptText(hookMatch?.[1]?.trim() || '');
+        const body = sanitizeScriptText(bodyMatch?.[1]?.trim() || response.trim());
+        const cta = sanitizeScriptText(ctaMatch?.[1]?.trim() || '');
         const suggestedTitle = titleMatch?.[1]?.trim() || trend.title;
 
         // Parse hashtags
@@ -296,7 +304,7 @@ You always format your response with clear [HOOK], [BODY], [CTA], [TITLE], and [
             .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
             .slice(0, 7);
 
-        // Build complete script
+        // Build complete script (already sanitized)
         const fullScript = [hook, body, cta].filter(Boolean).join('\n\n');
 
         // Estimate duration (average speaking rate: ~2.5 words per second)

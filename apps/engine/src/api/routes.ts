@@ -1680,5 +1680,184 @@ export function createApiRouter(): Hono {
         }
     });
 
+    // ============================================
+    // VIDEO GENERATION ENDPOINTS (Phase 26)
+    // ============================================
+
+    /**
+     * POST /api/video/generate
+     * Generate a video from script, images, and audio
+     */
+    api.post('/video/generate', async (c) => {
+        try {
+            const { getVideoEditingAgent } = await import('../video/index.js');
+            const agent = getVideoEditingAgent();
+
+            const body = await c.req.json() as {
+                id?: string;
+                platform: 'tiktok' | 'reels' | 'shorts';
+                title: string;
+                script: { hook: string; body: string; cta: string };
+                images: { hook: string[]; body: string[]; cta: string[] };
+                audio: { voiceoverPath: string; voiceoverDuration: number; backgroundMusicPath?: string };
+                options?: {
+                    captionStyle?: 'hormozi' | 'classic' | 'minimal';
+                    transitionStyle?: 'smooth' | 'dynamic' | 'minimal';
+                    kenBurnsEnabled?: boolean;
+                    backgroundMusicVolume?: number;
+                    audioDucking?: boolean;
+                };
+            };
+
+            // Validate required fields
+            if (!body.platform || !body.script || !body.images || !body.audio?.voiceoverPath) {
+                return c.json({
+                    success: false,
+                    error: 'Missing required fields: platform, script, images, audio.voiceoverPath',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const project = {
+                id: body.id || crypto.randomUUID(),
+                platform: body.platform,
+                title: body.title || 'Untitled Video',
+                script: body.script,
+                images: body.images,
+                audio: body.audio,
+                options: {
+                    captionStyle: body.options?.captionStyle || 'hormozi',
+                    transitionStyle: body.options?.transitionStyle || 'smooth',
+                    kenBurnsEnabled: body.options?.kenBurnsEnabled ?? true,
+                    backgroundMusicVolume: body.options?.backgroundMusicVolume ?? 0.15,
+                    audioDucking: body.options?.audioDucking ?? true,
+                },
+                createdAt: new Date().toISOString(),
+                status: 'queued' as const,
+            };
+
+            logger.info({
+                projectId: project.id,
+                platform: project.platform,
+            }, 'Starting video generation...');
+
+            const result = await agent.generateVideo(project);
+
+            return c.json({
+                success: result.success,
+                data: result,
+                timestamp: new Date().toISOString(),
+            }, result.success ? 200 : 500);
+
+        } catch (error) {
+            logger.error({ error }, 'Video generation failed');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * GET /api/video/status/:jobId
+     * Get video generation job status
+     */
+    api.get('/video/status/:jobId', async (c) => {
+        try {
+            const { getVideoEditingAgent } = await import('../video/index.js');
+            const agent = getVideoEditingAgent();
+            const jobId = c.req.param('jobId');
+
+            if (!jobId) {
+                return c.json({
+                    success: false,
+                    error: 'Job ID is required',
+                    timestamp: new Date().toISOString(),
+                }, 400);
+            }
+
+            const progress = agent.getJobProgress(jobId);
+
+            if (!progress) {
+                return c.json({
+                    success: false,
+                    error: 'Job not found',
+                    timestamp: new Date().toISOString(),
+                }, 404);
+            }
+
+            return c.json({
+                success: true,
+                data: progress,
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Failed to get video status');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * GET /api/video/jobs
+     * List all video generation jobs
+     */
+    api.get('/video/jobs', async (c) => {
+        try {
+            const { getVideoEditingAgent } = await import('../video/index.js');
+            const agent = getVideoEditingAgent();
+
+            const jobs = agent.getAllJobs();
+
+            return c.json({
+                success: true,
+                data: jobs,
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Failed to list video jobs');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
+    /**
+     * POST /api/video/jobs/cleanup
+     * Clean up completed video generation jobs
+     */
+    api.post('/video/jobs/cleanup', async (c) => {
+        try {
+            const { getVideoEditingAgent } = await import('../video/index.js');
+            const agent = getVideoEditingAgent();
+
+            const cleaned = agent.cleanupCompletedJobs();
+
+            logger.info({ cleaned }, 'Video jobs cleanup completed');
+
+            return c.json({
+                success: true,
+                data: { cleaned },
+                timestamp: new Date().toISOString(),
+            });
+
+        } catch (error) {
+            logger.error({ error }, 'Failed to cleanup video jobs');
+            return c.json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            }, 500);
+        }
+    });
+
     return api;
 }

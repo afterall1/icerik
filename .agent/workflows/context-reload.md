@@ -72,6 +72,20 @@ view_file memory/architecture/local-storage.md
 ```
 Browser-native storage hooks (favorites, history, analytics).
 
+#### 5.5 Voice/TTS System
+// turbo
+```bash
+view_file memory/architecture/voice-system.md
+```
+Multi-provider TTS, voice cache, BroadcastChannel sync.
+
+#### 5.6 Video Editing System
+// turbo
+```bash
+view_file memory/architecture/video-editing.md
+```
+FFmpeg pipeline, Ken Burns effects, word-by-word captions, platform profiles.
+
 ---
 
 ## Task-Based Loading Guide
@@ -83,6 +97,8 @@ Browser-native storage hooks (favorites, history, analytics).
 | **Frontend Work** | + local-storage |
 | **Performance** | + caching + worker |
 | **Security Work** | + security |
+| **Voice/TTS Work** | + voice-system |
+| **Video Editing Work** | + video-editing |
 | **Full Context** | Tüm dosyalar |
 
 ---
@@ -121,3 +137,5 @@ Tüm adımları takip et (1-5 arası)
 | `ai-quality.md` | AIMetrics, Iterator, Variants | 15 |
 | `local-storage.md` | Browser storage hooks | 16-18 |
 | `security.md` | Rate limiting, validation, CSP, XSS | 20 |
+| `voice-system.md` | TTS providers, voice cache, sync | 24 |
+| `video-editing.md` | FFmpeg pipeline, Ken Burns, captions | 26 |
