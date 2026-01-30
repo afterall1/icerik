@@ -124,9 +124,38 @@
 - [x] PlatformScriptCard.tsx integration
 - [x] Max 2 visuals per section limit
 
+### Phase 24: Voice Generation System ✅
+- [x] VoiceService.ts (ElevenLabs + Fish Audio multi-provider)
+- [x] VoiceCache.ts (SQLite cache, 7-day preview TTL)
+- [x] Voice API endpoints (4 endpoints: generate, status, preview, cache clear)
+- [x] voiceTypes.ts (frontend types + utilities)
+- [x] useVoiceSelection.ts (IndexedDB persistence)
+- [x] VoiceSelectionModal.tsx (voice picker UI)
+- [x] VoicePreviewCard.tsx (audio preview with cache retry)
+- [x] CSP media-src configuration (data: blob:)
+- [x] BroadcastChannel sync for voice selection
+
+### Phase 25: TTS Visual Direction Cleanup ✅
+- [x] scriptSanitizer.ts (backend text sanitization)
+- [x] textSanitizer.ts (frontend TTS sanitization)
+- [x] Bracket annotation removal ([ZOOM IN], [TEXT: ...], etc.)
+- [x] ScriptGenerator prompt update (forbid visual directions)
+- [x] Source-level cleanup in parseResponse()
+
+### Phase 26: Video Editing Agent ✅
+- [x] types.ts (platform profiles, caption styles)
+- [x] TimelineBuilder.ts (script → timeline, Ken Burns)
+- [x] CaptionGenerator.ts (word-by-word 15-20 CPS)
+- [x] AudioMixer.ts (ducking, normalization)
+- [x] FFmpegComposer.ts (FFmpeg filter complex)
+- [x] VideoEditingAgent.ts (main orchestrator)
+- [x] 4 Video API endpoints (generate, status, jobs, cleanup)
+- [x] Platform profiles: TikTok, Reels, Shorts
+
 ---
 
 ## 🟡 In Progress
+
 
 ### Phase 15: AI Quality Enhancement ✅
 

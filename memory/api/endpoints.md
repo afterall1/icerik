@@ -579,3 +579,199 @@ Image servis durumu.
 }
 ```
 
+---
+
+## 9. Voice Generation Endpoints (Phase 24)
+
+### POST /api/voice/generate
+
+TTS ile metin-ses dönüşümü.
+
+**Request Body:**
+```typescript
+{
+    text: string;              // Seslendirilecek metin (zorunlu, max 10000 char)
+    voiceId: string;           // Ses ID'si (zorunlu)
+    provider?: 'elevenlabs' | 'fishaudio';  // TTS sağlayıcı
+    settings?: {
+        stability?: number;     // 0-1, ses tutarlılığı
+        similarityBoost?: number; // 0-1, ses benzerliği
+        speed?: number;         // Konuşma hızı
+        style?: number;         // 0-1, stil yoğunluğu
+    };
+    format?: 'mp3' | 'wav' | 'ogg';  // Çıktı formatı (default: mp3)
+}
+```
+
+**Response:** Binary audio stream
+
+**Response Headers:**
+- `Content-Type`: `audio/mpeg` | `audio/wav` | `audio/ogg`
+- `X-Voice-Provider`: Kullanılan sağlayıcı
+- `X-Audio-Duration`: Ses süresi (saniye)
+- `X-Characters-Used`: Kullanılan karakter sayısı
+
+---
+
+### GET /api/voice/status
+
+TTS sağlayıcı durumu ve kota bilgisi.
+
+**Response:**
+```typescript
+{
+    providers: {
+        elevenlabs: {
+            configured: boolean;
+            voices: Array<{
+                voiceId: string;
+                name: string;
+                category: string;
+                previewUrl?: string;
+            }>;
+        };
+        fishaudio: {
+            configured: boolean;
+            voices: Array<{ ... }>;
+        };
+    };
+    cache: {
+        totalEntries: number;
+        hitRate: number;
+        sizeBytes: number;
+    };
+}
+```
+
+---
+
+### GET /api/voice/preview/:voiceId
+
+Ses önizleme - 7 gün cache ile base64 data URL.
+
+**Query Parameters:**
+| Param | Type | Description |
+|-------|------|-------------|
+| `provider` | `'elevenlabs' \| 'fishaudio'` | Sağlayıcı seçimi |
+
+**Response:**
+```typescript
+{
+    audio: string;   // "data:audio/mpeg;base64,..." format
+    cached: boolean; // Cache'den mi geldi
+}
+```
+
+---
+
+### POST /api/voice/cache/clear
+
+Ses cache'ini temizle.
+
+**Response:**
+```typescript
+{
+    deleted: number;  // Silinen kayıt sayısı
+}
+```
+
+---
+
+## Video Generation (Phase 26)
+
+### POST /api/video/generate
+
+Video üretimi başlat.
+
+**Request Body:**
+```typescript
+{
+    id?: string;                      // Optional job ID
+    platform: 'tiktok' | 'reels' | 'shorts';
+    title: string;
+    script: {
+        hook: string;
+        body: string;
+        cta: string;
+    };
+    images: {
+        hook: string[];               // Hook için görsel paths
+        body: string[];               // Body için görsel paths
+        cta: string[];                // CTA için görsel paths
+    };
+    audio: {
+        voiceoverPath: string;        // TTS ses dosyası path
+        voiceoverDuration: number;    // Ses süresi (saniye)
+        backgroundMusicPath?: string; // Opsiyonel arka plan müziği
+    };
+    options?: {
+        captionStyle?: 'hormozi' | 'classic' | 'minimal';
+        transitionStyle?: 'smooth' | 'dynamic' | 'minimal';
+        kenBurnsEnabled?: boolean;
+        backgroundMusicVolume?: number;  // 0-1, default 0.15
+        audioDucking?: boolean;          // default true
+    };
+}
+```
+
+**Response:**
+```typescript
+{
+    success: boolean;
+    jobId: string;
+    outputPath?: string;      // Video output path (if success)
+    duration?: number;        // Video duration in seconds
+    fileSize?: number;        // Output file size in bytes
+    processingTimeMs: number; // Total processing time
+    error?: string;           // Error message (if failed)
+}
+```
+
+---
+
+### GET /api/video/status/:jobId
+
+Video üretim durumu.
+
+**Response:**
+```typescript
+{
+    jobId: string;
+    status: 'queued' | 'building-timeline' | 'generating-captions' | 
+            'composing-video' | 'encoding' | 'complete' | 'failed';
+    progress: number;     // 0-100
+    currentStep: string;  // Human-readable step description
+}
+```
+
+---
+
+### GET /api/video/jobs
+
+Tüm video job'larını listele.
+
+**Response:**
+```typescript
+{
+    data: Array<{
+        jobId: string;
+        status: VideoJobStatus;
+        progress: number;
+        currentStep: string;
+    }>;
+}
+```
+
+---
+
+### POST /api/video/jobs/cleanup
+
+Tamamlanmış job'ları temizle.
+
+**Response:**
+```typescript
+{
+    cleaned: number;  // Silinen job sayısı
+}
+```
+

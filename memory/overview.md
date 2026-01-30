@@ -1,8 +1,8 @@
 # İçerik Trend Engine - Project Overview
 
-> **Version**: 1.17.0  
-> **Last Updated**: 24 Ocak 2026  
-> **Status**: Phase 20 Complete (Security Hardening)
+> **Version**: 1.22.0  
+> **Last Updated**: 30 Ocak 2026  
+> **Status**: Phase 25 Complete (TTS Visual Cleanup)
 
 ---
 

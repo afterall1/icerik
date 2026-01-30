@@ -1,57 +1,63 @@
 # Active Context - İçerik Trend Engine
 
-> **Son Güncelleme**: 25 Ocak 2026, 22:16  
-> **Aktif Faz**: Phase 24 - Voice Generation System ✅ COMPLETE  
-> **Current Version**: v1.21.0-dev
+> **Son Güncelleme**: 30 Ocak 2026, 15:43  
+> **Aktif Faz**: Phase 26 - Video Editing Agent ✅ COMPLETE  
+> **Current Version**: v1.23.1
 
 ---
 
 ## 🎯 Current Status
 
-**Phase 24: Voice Generation System - TAMAMLANDI ✅**
+**Phase 26: Video Editing Agent - TAMAMLANDI ✅**
 
-TTS (Text-to-Speech) entegrasyonu tüm katmanlarda çalışır durumda:
-- Backend: ElevenLabs + Fish Audio multi-provider
-- Frontend: VoiceSelectionModal, VoicePreviewCard, audio playback
-- CSP: media-src data: blob: eklendi
+Script, görsel ve seslerden otomatik video üretimi için modüler pipeline:
+- 6 core modül: types, TimelineBuilder, CaptionGenerator, AudioMixer, FFmpegComposer, VideoEditingAgent
+- 4 API endpoint: generate, status, jobs, cleanup
+- Platform profilleri: TikTok, Reels, Shorts (1080x1920, H.264)
 
 ---
 
-## ✅ Son Oturum Özeti (25 Ocak 2026, 22:16)
+## ✅ Son Oturum Özeti (30 Ocak 2026, 15:43)
 
-### Phase 24: Voice Generation System ✅ COMPLETE
+### 🔧 API Configuration Fix (Critical)
 
-**Çözülen Sorunlar (Debugging Session)**:
+**Problem**: Production modda (`npm run start`) `.env` dosyası yüklenmiyordu. AI script generation "GEMINI_API_KEY not configured" hatası veriyordu.
 
-| Sorun | Kök Neden | Çözüm |
-|-------|-----------|-------|
-| 404 Errors | Hardcoded `localhost:3000` URLs | Relative `/api/...` URLs |
-| MIME Type | ElevenLabs `text/plain` döndürüyor | MP3 header detection (ID3/sync) |
-| CSP Block | `media-src` direktifi yoktu | `media-src 'self' data: blob:` eklendi |
-| Cache Error | Bozuk cache retry yok | Cache invalidation + retry mechanism |
+**Root Cause**: Node.js otomatik olarak `.env` yüklemez. Dev modda `tsx --env-file` kullanılıyordu ama production script'inde yoktu.
 
-**Güncellenen Dosyalar (Bu Oturum)**:
-- `index.html` - CSP media-src direktifi eklendi
-- `VoicePreviewCard.tsx` - Cache retry mekanizması, detaylı logging
-- `VoiceSelectionModal.tsx` - Relative URL
-- `AudioTestButton.tsx` - Relative URL
-- `useVoiceGeneration.ts` - Relative URL
-- `observatoryApi.ts` - Relative URL
-- `HealthMetrics.tsx` - Relative URL
-- `useVisualSearch.ts` - Relative URL
-- `VoiceService.ts` - getPreviewData MP3 detection
-- `VoiceCache.ts` - Preview cache methods
-- `routes.ts` - Preview endpoint JSON response
+**Fix Applied**:
 
-**Yeni Diagnostik Araçları**:
-- `/audio-test.html` - Ses test sayfası
-- `/voice-diagnostic.html` - Detaylı API ve audio event logging
+| Dosya | Değişiklik |
+|-------|------------|
+| `apps/engine/package.json` | `--env-file` flags eklendi (dev + start scripts) |
+| `apps/engine/src/index.ts` | Startup validation logging eklendi |
 
-**Key Verification**:
-- ✅ TypeScript build passed (engine + dashboard)
-- ✅ Backend API verified (21 voices)
-- ✅ Frontend voice preview WORKING
-- ✅ VoiceSelectionModal audio playback WORKING
+```diff
+# package.json
+-"dev": "tsx watch --env-file=../../.env src/index.ts"
++"dev": "tsx watch --env-file=.env --env-file=../../.env src/index.ts"
+
+-"start": "node dist/index.js"
++"start": "node --env-file=.env --env-file=../../.env dist/index.js"
+```
+
+**Verification**:
+- ✅ `/api/ai/status` → `success: true`
+- ✅ `/api/generate-scripts` → Script generation working
+- ✅ All API endpoints verified
+
+### Önceki Oturumdan (Phase 26)
+
+| Dosya | Açıklama |
+|-------|----------|
+| `src/video/types.ts` | Platform profilleri, caption stilleri, type definitions |
+| `src/video/TimelineBuilder.ts` | Script → Timeline, Ken Burns effects |
+| `src/video/CaptionGenerator.ts` | Word-by-word 15-20 CPS timing |
+| `src/video/AudioMixer.ts` | Audio ducking, normalization |
+| `src/video/FFmpegComposer.ts` | FFmpeg filter complex generation |
+| `src/video/VideoEditingAgent.ts` | Main orchestrator (singleton) |
+| `src/video/index.ts` | Module re-exports |
+| `src/api/routes.ts` | 4 video API endpoints added |
 
 ---
 
@@ -59,48 +65,47 @@ TTS (Text-to-Speech) entegrasyonu tüm katmanlarda çalışır durumda:
 
 | Metric | Value |
 |--------|-------|
-| Phases Completed | 1 (Phase 24) |
-| Bugs Fixed | 3 (CORS, MIME, CSP) |
-| Files Modified | 11 |
-| New Test Pages | 2 |
+| Files Modified | 2 (`package.json`, `index.ts`) |
+| Bug Fixes | 1 (Critical: .env loading) |
+| API Verification | 9 endpoints tested |
 | Build Status | ✅ Passed |
 
 ---
 
 ## 🏗️ Architecture Highlights
 
-1. **VoiceService**: Multi-provider TTS with MP3 header detection
-2. **VoiceCache**: SQLite-based audio caching with 7-day TTL for previews
-3. **useVoiceSelection**: IndexedDB persistence for voice preferences
-4. **CSP**: media-src allows data: and blob: URLs for audio playback
+1. **Env Loading**: Node.js `--env-file` for cascade loading (local → root)
+2. **Startup Validation**: Feature availability logged at boot
+3. **Video Pipeline**: Modüler FFmpeg tabanlı video composition
+4. **Ken Burns Effects**: zoom-in/out, pan-left/right/up/down
+5. **Caption Timing**: 15-20 CPS Netflix/BBC standardı
 
 ---
 
 ## 🚧 Incomplete Features
 
-1. **Voice Generation Flow**: Generate endpoint ready, full UI integration pending
-2. **Audio Waveform**: Visualization component not started
-3. **Multi-voice Assignment**: Per-section voice assignment pending
+1. **Video Generation UI**: Dashboard integration pending
+2. **Background Music**: Optional track support implemented, UI pending
+3. **Progress Tracking**: Real-time progress websocket pending
+4. **FFmpeg System Install**: Required for actual video rendering
 
 ---
 
 ## 📅 Next Session Priorities
 
-1. Implement voice generation workflow in PlatformScriptCard
-2. Add generated audio download/export
-3. Multi-voice per script support
-4. Audio waveform visualization
+1. Dashboard video generation UI
+2. Video preview/download components
+3. Progress tracking with websockets
+4. End-to-end test with real content
 
 ---
 
-## 📁 Docs to Update
+## 📁 Docs Updated This Session
 
-- [x] `memory/active_context.md` - Updated
-- [x] `memory/_SYNC_CHECKLIST.md` - Needs update
-- [ ] `memory/changelog.md` - v1.21.0
-- [ ] `memory/roadmap.md` - Phase 24 complete
-- [ ] `memory/architecture/security.md` - CSP update
-- [ ] `memory/api/endpoints.md` - Voice endpoints
+- [x] `apps/engine/package.json` - --env-file flags
+- [x] `apps/engine/src/index.ts` - Startup validation
+- [x] `memory/active_context.md` - This file
+- [x] `memory/_SYNC_CHECKLIST.md` - Updated
 
 ---
 
@@ -109,7 +114,7 @@ TTS (Text-to-Speech) entegrasyonu tüm katmanlarda çalışır durumda:
 ```bash
 packages/shared  ✅
 apps/engine      ✅ (TypeScript verified)
-apps/dashboard   ✅ (TypeScript verified, Vite build passed)
+apps/dashboard   ✅ 
 ```
 
 ---

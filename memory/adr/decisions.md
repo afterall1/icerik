@@ -310,6 +310,88 @@ Zod ile schema-based validation middleware.
 
 ---
 
+## ADR-011: Backend-Cached Base64 Preview Strategy
+
+**Status**: ✅ Accepted  
+**Date**: 2026-01-25  
+**Phase**: 24
+
+### Context
+Voice preview audio'ları nasıl frontend'e sunulacak? Seçenekler: Direct URL streaming vs Base64 data URL vs Binary blob.
+
+### Decision
+Backend SQLite cache + Base64 data URL response.
+
+### Rationale
+1. **CSP Compliance**: Blob URL'ler oluşturmadan ses çalabilir
+2. **7-Day Cache**: Preview'lar sık değişmez, uzun TTL mantıklı
+3. **Provider Abstraction**: URL değişikliklerinden izole
+4. **Single Request**: Fetch + decode tek seferde
+
+### Consequences
+- ✅ CSP-safe, no blob creation required
+- ✅ Browser cache friendly (JSON response)
+- ⚠️ Base64 encoding ~33% boyut artışı
+- ⚠️ İlk yükleme biraz daha yavaş
+
+---
+
+## ADR-012: BroadcastChannel for Cross-Tab Voice Sync
+
+**Status**: ✅ Accepted  
+**Date**: 2026-01-30  
+**Phase**: 24
+
+### Context
+useVoiceSelection hook birden fazla component'ta kullanılıyor. Modal'da yapılan seçim parent page'de nasıl anında yansıyacak?
+
+### Decision
+BroadcastChannel API ile aynı origin'deki tüm tab'lar arası mesajlaşma.
+
+### Rationale
+1. **Native Browser API**: Ek dependency yok
+2. **Same-Origin**: Security built-in
+3. **Real-time**: localStorage event'e göre daha reliable
+4. **Simple Protocol**: `postMessage()` + `onmessage`
+
+### Implementation
+```typescript
+const CHANNEL = 'icerik_voice_selection_sync';
+channel.postMessage({ type: 'VOICE_SELECTION_UPDATED' });
+```
+
+### Consequences
+- ✅ Instant sync across all hook instances
+- ✅ Works in modal + parent page
+- ⚠️ IE11 desteği yok (gerekmiyor)
+- ⚠️ Cross-origin tabs desteklenmiyor
+
+---
+
+## ADR-013: Aggressive Bracket Cleanup at Source
+
+**Status**: ✅ Accepted  
+**Date**: 2026-01-30  
+**Phase**: 25
+
+### Context
+AI script'lerde `[ZOOM IN]`, `[TEXT: "..."]` gibi visual direction'lar TTS'e gidiyor ve okunuyor.
+
+### Decision
+Source-level cleanup: ScriptGenerator.parseResponse() içinde tüm bracket'lar silinir.
+
+### Rationale
+1. **Single Source of Truth**: Backend'de temizlenen script her yere temiz gider
+2. **Aggressive Pattern**: `/\[([A-ZÇĞİÖŞÜ][^\]]*)\]/g` - tüm uppercase bracket'ları yakalar
+3. **Dual Layer**: Frontend'de de backup sanitizer var
+
+### Consequences
+- ✅ TTS asla visual direction okumaz
+- ✅ Frontend UI temiz görünür
+- ⚠️ Legit bracket content varsa (nadir) silinir
+
+---
+
 *New ADRs should be added chronologically with incrementing numbers.*
 
 

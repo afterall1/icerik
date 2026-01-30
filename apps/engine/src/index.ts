@@ -9,6 +9,7 @@
 
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import { prettyJSON } from 'hono/pretty-json';
 import { createApiRouter } from './api/index.js';
 import { getWorker } from './worker/index.js';
 import { closeDatabase, getDatabaseStats } from './cache/index.js';
@@ -37,8 +38,37 @@ async function main(): Promise<void> {
 
         appLogger.info({ withWorker: args.withWorker }, '🚀 Starting Trend Engine...');
 
+        // ═══════════════════════════════════════════════════════════════
+        // STARTUP VALIDATION - Report feature availability
+        // ═══════════════════════════════════════════════════════════════
+        if (!env.GEMINI_API_KEY) {
+            appLogger.warn('⚠️  GEMINI_API_KEY not set - AI script generation will be disabled');
+        } else {
+            appLogger.info('✅ Gemini AI configured');
+        }
+
+        if (!env.ELEVENLABS_API_KEY && !env.FISHAUDIO_API_KEY) {
+            appLogger.warn('⚠️  No TTS provider configured - Voice generation will be disabled');
+        } else {
+            const providers = [
+                env.ELEVENLABS_API_KEY ? 'ElevenLabs' : null,
+                env.FISHAUDIO_API_KEY ? 'FishAudio' : null,
+            ].filter(Boolean);
+            appLogger.info({ providers }, '✅ TTS providers configured');
+        }
+
+        if (!env.PEXELS_API_KEY) {
+            appLogger.warn('⚠️  PEXELS_API_KEY not set - Image discovery will be disabled');
+        } else {
+            appLogger.info('✅ Pexels Image API configured');
+        }
+        // ═══════════════════════════════════════════════════════════════
+
         // Create Hono app
         const app = new Hono();
+
+        // Enable pretty JSON output in development
+        app.use('*', prettyJSON());
 
         // Mount API routes with error handling
         try {

@@ -6,6 +6,92 @@ Tüm önemli değişiklikler bu dosyada belgelenir.
 
 ---
 
+## [1.22.0] - 2026-01-30
+
+### 🧹 TTS Visual Direction Cleanup (Phase 25)
+
+Script'lerdeki visual direction annotation'larını kaynak seviyesinde temizleyen sistem.
+
+### Added
+- **scriptSanitizer.ts** (`apps/engine/src/ai/scriptSanitizer.ts`)
+  - Aggressive regex pattern for bracket removal
+  - Supports Turkish uppercase chars (ÇĞİÖŞÜ)
+  - sanitizeScriptText() utility function
+
+### Changed
+- **scriptGenerator.ts** - parseResponse() now sanitizes all sections (hook/body/cta)
+- **textSanitizer.ts** - Frontend backup sanitizer with aggressive pattern
+
+### Patterns Removed
+```
+[ZOOM IN], [ZOOM OUT], [CUT TO], [B-ROLL]
+[TEXT: "DİKKAT!"], [OVERLAY: ...], [VISUAL: ...]
+[TRANSITION: Smooth Zoom], [RETENTION HOOK: ...]
+[SUBSCRIBE MOMENT], [LOOP POINT], [SEARCH KEYWORD: ...]
+```
+
+### Technical
+- 1 new backend file
+- 2 files modified
+- Dual-layer sanitization (backend + frontend)
+- TypeScript build verified
+
+---
+
+## [1.21.0] - 2026-01-25
+
+### 🔊 Voice Generation System (Phase 24)
+
+Multi-provider TTS (Text-to-Speech) sistemi ile script'lerin seslendirilmesi.
+
+### Added
+- **VoiceService.ts** (`apps/engine/src/voice/VoiceService.ts`)
+  - ElevenLabs + Fish Audio multi-provider
+  - Automatic fallback on failure
+  - MP3 header detection for MIME type fix
+
+- **VoiceCache.ts** (`apps/engine/src/voice/VoiceCache.ts`)
+  - SQLite-based audio caching
+  - 7-day TTL for voice previews
+  - Hash-based cache key generation
+
+- **Voice API Endpoints** (4 new endpoints)
+  - `POST /api/voice/generate` - TTS generation
+  - `GET /api/voice/status` - Provider status
+  - `GET /api/voice/preview/:voiceId` - Base64 preview
+  - `POST /api/voice/cache/clear` - Cache cleanup
+
+- **Frontend Components**
+  - `VoiceSelectionModal.tsx` - Voice picker UI
+  - `VoicePreviewCard.tsx` - Audio preview with retry
+  - `useVoiceSelection.ts` - IndexedDB persistence + BroadcastChannel sync
+  - `useVoiceGeneration.ts` - TTS generation hook
+
+- **Diagnostic Tools**
+  - `/audio-test.html` - Audio playback test
+  - `/voice-diagnostic.html` - API and audio event logging
+
+### Changed
+- **index.html** - CSP media-src directive (data: blob:)
+- **routes.ts** - Voice API endpoint registration
+
+### Features
+| Feature | Detail |
+|---------|--------|
+| Multi-Provider | ElevenLabs primary, Fish Audio fallback |
+| Caching | SQLite with 7-day preview TTL |
+| Persistence | IndexedDB voice selection |
+| Cross-Tab Sync | BroadcastChannel API |
+| CSP Compliant | media-src data: blob: |
+
+### Technical
+- 8 new files added
+- 4 files modified
+- 4 new API endpoints
+- TypeScript + Vite build verified
+
+---
+
 ## [1.20.0] - 2026-01-25
 
 ### 🖼️ Visual Selection System (Phase 23)
