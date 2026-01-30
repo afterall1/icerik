@@ -126,3 +126,17 @@ memory/architecture/
 └── video-editing.md     # FFmpeg pipeline, Ken Burns, captions
 ```
 
+---
+
+## 🔧 Environment Configuration Checklist
+
+Production `.env` loading sorunu yaşandığında:
+
+1. **Check package.json scripts**: `--env-file` flags var mı?
+2. **Check startup logs**: Feature availability logları görünüyor mu?
+3. **Test API status**: `GET /api/ai/status` → `configured: true` mı?
+
+```json
+// DOĞRU pattern:
+"start": "node --env-file=.env --env-file=../../.env dist/index.js"
+```

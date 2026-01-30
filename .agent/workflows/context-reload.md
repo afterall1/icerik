@@ -139,3 +139,30 @@ Tüm adımları takip et (1-5 arası)
 | `security.md` | Rate limiting, validation, CSP, XSS | 20 |
 | `voice-system.md` | TTS providers, voice cache, sync | 24 |
 | `video-editing.md` | FFmpeg pipeline, Ken Burns, captions | 26 |
+
+---
+
+## ⚠️ Environment Configuration (CRITICAL)
+
+Production modda `.env` dosyası otomatik yüklenmez! Node.js native `--env-file` kullanılmalı:
+
+```json
+// apps/engine/package.json
+{
+  "scripts": {
+    "dev": "tsx watch --env-file=.env --env-file=../../.env src/index.ts",
+    "start": "node --env-file=.env --env-file=../../.env dist/index.js"
+  }
+}
+```
+
+**Cascade Loading**: Local `.env` → Root `../../.env` (later overrides earlier)
+
+### Startup Validation
+
+Server başlangıcında feature availability loglanır:
+```
+✅ Gemini AI configured
+✅ TTS providers configured { providers: ['ElevenLabs'] }
+✅ Pexels Image API configured
+```
