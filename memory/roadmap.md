@@ -152,6 +152,15 @@
 - [x] 4 Video API endpoints (generate, status, jobs, cleanup)
 - [x] Platform profiles: TikTok, Reels, Shorts
 
+### Phase 27: E2E Testing Infrastructure ✅
+- [x] video-generation.spec.ts (280 satır, video akışı E2E)
+- [x] voice-generation.spec.ts (240 satır, ses testleri)
+- [x] test-helpers.ts (API mock, wait helpers)
+- [x] e2e-tests.yml (GitHub Actions CI/CD)
+- [x] video-e2e-test SKILL.md (Antigravity skill)
+- [x] CSP Blob URL fix (audioBlob → FileReader)
+- [x] useVideoJobs infinite loop fix (refs)
+
 ---
 
 ## 🟡 In Progress

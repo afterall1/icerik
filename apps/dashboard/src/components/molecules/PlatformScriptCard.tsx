@@ -24,6 +24,8 @@ import { VoicePlayer } from './VoicePlayer';
 import { useVoiceGeneration } from '../../lib/useVoiceGeneration';
 import { useVoiceSelection } from '../../lib/useVoiceSelection';
 import { VoiceSelectionModal } from '../organisms/VoiceSelectionModal';
+import { VideoGenerationButton } from './VideoGenerationButton';
+import { VideoGenerationModal } from '../organisms/VideoGenerationModal';
 
 /**
  * Platform-optimal duration thresholds for warning display
@@ -170,9 +172,9 @@ export function PlatformScriptCard({
     const [visualPanelOpen, setVisualPanelOpen] = useState(false);
     const [visualPanelSection, setVisualPanelSection] = useState<SectionType | null>(null);
     const [visualPanelContent, setVisualPanelContent] = useState('');
-    // Voice Generation state
     const [voiceExpanded, setVoiceExpanded] = useState(false);
     const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+    const [videoModalOpen, setVideoModalOpen] = useState(false);
 
     const label = PLATFORM_LABELS[platform];
     const icon = PLATFORM_ICONS[platform];
@@ -185,6 +187,7 @@ export function PlatformScriptCard({
         isLoading: isVoiceLoading,
         error: voiceError,
         audioUrl,
+        audioBlob,
         audioDuration,
         lastProvider,
     } = useVoiceGeneration();
@@ -663,6 +666,21 @@ export function PlatformScriptCard({
                         </div>
                     )}
                 </div>
+
+                {/* Video Generation Section */}
+                <div className="px-3 py-2 border-t border-slate-800">
+                    <VideoGenerationButton
+                        platform={platform}
+                        visualCount={
+                            (selections?.selections.hook?.length || 0) +
+                            (selections?.selections.body?.length || 0) +
+                            (selections?.selections.cta?.length || 0)
+                        }
+                        hasAudio={!!audioUrl}
+                        audioDuration={audioDuration || undefined}
+                        onClick={() => setVideoModalOpen(true)}
+                    />
+                </div>
             </Card>
 
             {/* Visual Discovery Panel */}
@@ -685,6 +703,18 @@ export function PlatformScriptCard({
             <VoiceSelectionModal
                 isOpen={voiceModalOpen}
                 onClose={() => setVoiceModalOpen(false)}
+            />
+
+            {/* Video Generation Modal */}
+            <VideoGenerationModal
+                isOpen={videoModalOpen}
+                onClose={() => setVideoModalOpen(false)}
+                platform={platform}
+                script={script}
+                visualSelections={selections}
+                audioUrl={audioUrl}
+                audioBlob={audioBlob}
+                audioDuration={audioDuration}
             />
         </>
     );

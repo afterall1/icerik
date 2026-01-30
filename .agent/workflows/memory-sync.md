@@ -47,6 +47,7 @@ Hangi dosyaların güncellenmesi gerektiğini ve Documentation Health Score'u ko
 | Security/Rate limiting | `memory/architecture/security.md` |
 | Voice/TTS system | `memory/architecture/voice-system.md` |
 | Video editing/FFmpeg | `memory/architecture/video-editing.md` |
+| E2E/Unit testing | `memory/architecture/e2e-testing.md` |
 
 #### 3.3 Project State
 
@@ -57,7 +58,73 @@ Hangi dosyaların güncellenmesi gerektiğini ve Documentation Health Score'u ko
 | Version bump | `memory/changelog.md` |
 | Proje yapısı değişti | `memory/overview.md` |
 
-### 4. Verification Checklist
+---
+
+## ⚠️ 4. YENİ ARCHITECTURE DOSYASI KONTROLÜ (ZORUNLU)
+
+> **ÖNEMLİ**: Context'i %100 korumak için yeni feature'lar eklendiğinde yeni memory dosyası gerekip gerekmediğini kontrol et.
+
+### 4.1 Yeni Dosya Gerekli Mi?
+
+Aşağıdaki kriterlerden **BİRİ** sağlanıyorsa YENİ architecture dosyası oluştur:
+
+| Kriter | Örnek |
+|--------|-------|
+| Yeni bağımsız sistem/modül | E2E Testing, Payment, Auth |
+| 3+ yeni dosya aynı alanda | video/*.ts, testing/*.ts |
+| Yeni teknoloji entegrasyonu | FFmpeg, Playwright, Stripe |
+| Mevcut dosyalarla %20+ örtüşme yok | Tamamen yeni alan |
+
+### 4.2 Dosya Oluşturma Şablonu
+
+```markdown
+# [Sistem Adı] Architecture
+
+> **Module**: Phase [N] - [Feature Name]  
+> **Version**: [x.y.z]  
+> **Date**: [Tarih]
+
+---
+
+## Overview
+[Sistemin kısa açıklaması]
+
+---
+
+## File Structure
+[İlgili dosyaların listesi]
+
+---
+
+## Key Components
+[Ana bileşenler ve görevleri]
+
+---
+
+## Patterns & Usage
+[Kullanım örnekleri ve kod patterns]
+
+---
+
+## Known Issues & Solutions
+[Bilinen sorunlar ve çözümleri]
+
+---
+
+## Quick Reference
+[Hızlı referans komutları]
+```
+
+### 4.3 Oluşturulan Dosyayı Güncelle
+
+Yeni dosya oluşturulduktan sonra:
+1. `_SYNC_CHECKLIST.md` → Architecture file count güncelle
+2. `/context-reload` workflow → Yeni dosyayı ekle
+3. Bu workflow (`/memory-sync`) → Architecture tablosuna ekle
+
+---
+
+### 5. Verification Checklist
 
 Sync öncesi kontrol et:
 - [ ] TypeScript build geçiyor mu?
@@ -65,19 +132,20 @@ Sync öncesi kontrol et:
 - [ ] Yeni type'lar `types.md`'de var mı?
 - [ ] Mimari değişiklikler ilgili dosyada dokümante mi?
 - [ ] ADR numarası sıralı mı?
+- [ ] Yeni feature için architecture dosyası gerekli mi? (Adım 4)
 
-### 5. Git Commit
+### 6. Git Commit
 
 **PowerShell (Windows):**
 ```powershell
-git add memory/
+git add memory/ .agent/
 git commit -m "chore: memory sync - $(Get-Date -Format 'yyyy-MM-dd')"
 git push
 ```
 
 **Bash (Linux/Mac):**
 ```bash
-git add memory/
+git add memory/ .agent/
 git commit -m "chore: memory sync - $(date +%Y-%m-%d)"
 git push
 ```
@@ -111,7 +179,7 @@ Score %100 altındaysa eksik dokümantasyonu tamamla.
 
 ---
 
-## Quick Reference: Architecture Files
+## Quick Reference: Architecture Files (10 Dosya)
 
 ```
 memory/architecture/
@@ -123,7 +191,8 @@ memory/architecture/
 ├── local-storage.md     # Browser storage hooks
 ├── security.md          # Rate limiting, validation, CSP
 ├── voice-system.md      # TTS providers, voice cache, BroadcastChannel
-└── video-editing.md     # FFmpeg pipeline, Ken Burns, captions
+├── video-editing.md     # FFmpeg pipeline, Ken Burns, captions
+└── e2e-testing.md       # Playwright E2E, Vitest, CI/CD, Skills
 ```
 
 ---

@@ -1,7 +1,7 @@
 # 🔄 End-of-Session Sync Checklist
 
 > **Proje**: İçerik Trend Engine  
-> **Son Sync**: 30 Ocak 2026, 15:43
+> **Son Sync**: 30 Ocak 2026, 23:20
 
 Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak doldurulmalıdır.
 
@@ -9,44 +9,66 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 
 ## 1. Kod Değişiklikleri → Dokümantasyon Güncellemeleri
 
-- [x] Store/State değişti mi? → Hayır
+- [x] Store/State değişti mi? → Evet (useVoiceGeneration: audioBlob)
 - [x] Yeni API endpoint eklendi mi? → Hayır
 - [x] Shared types değişti mi? → Hayır
-- [x] Yeni pattern/mimari eklendi mi? → Evet (Startup validation logging)
-- [x] Feature logic değişti mi? → Hayır
-- [x] Bug fix yapıldı mı? → Evet (Critical: .env loading in production)
+- [x] Yeni pattern/mimari eklendi mi? → Evet (E2E Testing, CI/CD)
+- [x] Feature logic değişti mi? → Evet (CSP blob fix, infinite loop fix)
+- [x] Bug fix yapıldı mı? → Evet (2 Critical: CSP, useVideoJobs)
 
 ## 2. Bütünlük Kontrolü
 
 - [x] API dokümantasyonu gerçek kodu yansıtıyor mu? → ✅ Güncel
-- [x] Kritik kararlar ADR olarak kaydedildi mi? → ✅ Mevcut fix technical, ADR gerektirmez
+- [x] Kritik kararlar ADR olarak kaydedildi mi? → ✅ E2E testing mimarisi
 - [x] `active_context.md` YENİ bir asistan için yeterince detaylı mı? ✅
 
 ## 3. Doğrulama
 
-- [x] Test sonuçları kaydedildi mi? → ✅ 9 API endpoint verified
-- [x] Changelog güncellendi mi? → Beklemede (v1.23.1)
+- [x] Test sonuçları kaydedildi mi? → ✅ E2E testler oluşturuldu
+- [x] Changelog güncellendi mi? → Beklemede (v1.24.0)
 - [x] Roadmap/active_context güncellendi mi? → ✅
 
 ---
 
-## 4. Bu Oturum Güncellemeleri (30 Ocak 2026, 15:43)
+## 4. Bu Oturum Güncellemeleri (30 Ocak 2026, 23:20)
 
 | Dosya | Güncelleme |
 |-------|------------|
-| `apps/engine/package.json` | `--env-file` flags eklendi (dev + start scripts) |
-| `apps/engine/src/index.ts` | Startup validation logging eklendi |
-| `memory/active_context.md` | Bug fix özeti güncellendi |
-| `memory/_SYNC_CHECKLIST.md` | Bu dosya güncellendi |
+| `e2e/video-generation.spec.ts` | YENİ - Video akışı E2E testleri (280 satır) |
+| `e2e/voice-generation.spec.ts` | YENİ - Ses üretimi testleri (240 satır) |
+| `e2e/helpers/test-helpers.ts` | YENİ - API mock, wait helpers (200 satır) |
+| `.github/workflows/e2e-tests.yml` | YENİ - CI/CD pipeline (130 satır) |
+| `.agent/skills/video-e2e-test/SKILL.md` | YENİ - Antigravity skill (150 satır) |
+| `memory/architecture/e2e-testing.md` | YENİ - E2E testing architecture (290 satır) |
+| `.agent/workflows/memory-sync.md` | Updated - Yeni dosya kontrolü adımı eklendi |
+| `.agent/workflows/context-reload.md` | Updated - 5.7 E2E Testing System eklendi |
+| `useVoiceGeneration.ts` | audioBlob state eklendi |
+| `VideoGenerationModal.tsx` | blobToBase64 fix (CSP bypass) |
+| `useVideoJobs.ts` | Infinite loop fix (refs) |
 
-### Bug Fix: Production .env Loading
+### Bug Fix 1: CSP Blob URL Fetch Error
 
-**Problem**: `npm run start` komutu `.env` dosyasını yüklemiyordu.
+**Problem**: `fetch()` blob: URL'lerini CSP engeli nedeniyle alamıyordu.
 
-**Solution**: Node.js 20.6+ native `--env-file` flag kullanıldı:
-```json
-"start": "node --env-file=.env --env-file=../../.env dist/index.js"
-```
+**Solution**: `audioBlob` prop eklenerek FileReader ile direkt base64 dönüşümü
+
+### Bug Fix 2: Video Jobs Infinite Loop
+
+**Problem**: `useVideoJobs` dependency array'de `hasActiveJobs` → sonsuz döngü
+
+**Solution**: Callback'ler ref'lere taşındı, `isFetchingRef` eklendi
+
+### Workflow Updates
+
+**memory-sync.md**: Yeni "Adım 4: YENİ ARCHITECTURE DOSYASI KONTROLÜ" eklendi
+- Context'i %100 korumak için zorunlu kontrol
+- 4 kriter ile yeni dosya gerekip gerekmediği belirlenir
+- Dosya oluşturma şablonu sağlandı
+
+**context-reload.md**: "5.7 E2E Testing System" eklendi
+- e2e-testing.md architecture dosyası
+- Testing/QA Work için task-based loading
+- Test komutları quick reference
 
 ---
 
@@ -68,8 +90,8 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 # Memory sync workflow
 # 1. active_context.md güncellendi ✅
 # 2. _SYNC_CHECKLIST.md güncellendi ✅
-# 3. git add memory/
-# 4. git commit -m "chore: memory sync - 2026-01-30 (API config fix)"
+# 3. git add memory/ .github/ apps/dashboard/e2e/ .agent/
+# 4. git commit -m "chore: memory sync - 2026-01-30 (Phase 27 E2E + workflow updates)"
 ```
 
 ---
@@ -87,6 +109,7 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 | Visual Selection | 100% | 100% |
 | Voice Generation | 100% | 100% |
 | Video Editing | 100% | 100% ✅ |
+| E2E Testing | NEW | 100% ✅ |
 | Overall | 100% | 100% ✅ |
 
 ---
@@ -98,7 +121,7 @@ Bu checklist, her oturum sonunda context kaybını önlemek için ZORUNLU olarak
 | Roadmap | `roadmap.md` | ✅ Active |
 | ADRs | `decisions.md` | ✅ Active |
 | Endpoints | `endpoints.md` | ✅ Active |
-| Architecture | `architecture/*.md` | ✅ Active (9 files) |
+| Architecture | `architecture/*.md` | ✅ Active (10 files) |
 | Metadata | `changelog.md` | ✅ Active |
 | Future Ideas | `roadmap.md` | ✅ Active |
 

@@ -40,6 +40,8 @@ export interface UseVoiceGenerationReturn {
     error: string | null;
     /** Current audio URL (for playback) */
     audioUrl: string | null;
+    /** Current audio blob (for upload) */
+    audioBlob: Blob | null;
     /** Audio duration in seconds */
     audioDuration: number | null;
     /** Provider used for last generation */
@@ -58,6 +60,7 @@ export function useVoiceGeneration(): UseVoiceGenerationReturn {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
+    const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [audioDuration, setAudioDuration] = useState<number | null>(null);
     const [lastProvider, setLastProvider] = useState<VoiceProvider | null>(null);
     const audioUrlRef = useRef<string | null>(null);
@@ -111,6 +114,7 @@ export function useVoiceGeneration(): UseVoiceGenerationReturn {
                 const url = URL.createObjectURL(cached.audioBlob);
                 audioUrlRef.current = url;
                 setAudioUrl(url);
+                setAudioBlob(cached.audioBlob);
                 setAudioDuration(cached.durationSeconds);
                 return cached.audioBlob;
             }
@@ -164,6 +168,7 @@ export function useVoiceGeneration(): UseVoiceGenerationReturn {
             const url = URL.createObjectURL(audioBlob);
             audioUrlRef.current = url;
             setAudioUrl(url);
+            setAudioBlob(audioBlob);
             setAudioDuration(duration);
             setLastProvider(provider);
 
@@ -187,6 +192,7 @@ export function useVoiceGeneration(): UseVoiceGenerationReturn {
         isLoading,
         error,
         audioUrl,
+        audioBlob,
         audioDuration,
         lastProvider,
     };

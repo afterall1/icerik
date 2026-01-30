@@ -86,6 +86,13 @@ view_file memory/architecture/video-editing.md
 ```
 FFmpeg pipeline, Ken Burns effects, word-by-word captions, platform profiles.
 
+#### 5.7 E2E Testing System
+// turbo
+```bash
+view_file memory/architecture/e2e-testing.md
+```
+Playwright E2E tests, Vitest unit tests, CI/CD pipeline, Antigravity skills, test patterns.
+
 ---
 
 ## Task-Based Loading Guide
@@ -99,6 +106,7 @@ FFmpeg pipeline, Ken Burns effects, word-by-word captions, platform profiles.
 | **Security Work** | + security |
 | **Voice/TTS Work** | + voice-system |
 | **Video Editing Work** | + video-editing |
+| **Testing/QA Work** | + e2e-testing |
 | **Full Context** | Tüm dosyalar |
 
 ---
@@ -126,7 +134,7 @@ Tüm adımları takip et (1-5 arası)
 
 ---
 
-## Architecture Files Summary
+## Architecture Files Summary (10 Dosya)
 
 | Dosya | Açıklama | Phase |
 |-------|----------|-------|
@@ -139,6 +147,7 @@ Tüm adımları takip et (1-5 arası)
 | `security.md` | Rate limiting, validation, CSP, XSS | 20 |
 | `voice-system.md` | TTS providers, voice cache, sync | 24 |
 | `video-editing.md` | FFmpeg pipeline, Ken Burns, captions | 26 |
+| `e2e-testing.md` | Playwright, Vitest, CI/CD, Skills | 27 |
 
 ---
 
@@ -165,4 +174,19 @@ Server başlangıcında feature availability loglanır:
 ✅ Gemini AI configured
 ✅ TTS providers configured { providers: ['ElevenLabs'] }
 ✅ Pexels Image API configured
+```
+
+---
+
+## 🧪 Test Commands Quick Reference
+
+```bash
+# E2E Tests
+cd apps/dashboard && npx playwright test
+npx playwright test video-generation  # Specific file
+npx playwright test --ui               # GUI mode
+
+# Unit Tests
+cd apps/engine && npm test
+cd apps/dashboard && npm test
 ```

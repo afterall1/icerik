@@ -1,8 +1,8 @@
 # İçerik Trend Engine - Project Overview
 
-> **Version**: 1.22.0  
+> **Version**: 1.24.0  
 > **Last Updated**: 30 Ocak 2026  
-> **Status**: Phase 25 Complete (TTS Visual Cleanup)
+> **Status**: Phase 27 Complete (E2E Testing Infrastructure)
 
 ---
 
@@ -107,8 +107,14 @@ cd apps/engine && npm run dev -- --with-worker
 # Frontend development
 cd apps/dashboard && npm run dev
 
-# Run tests
+# Run unit tests
 cd apps/engine && npm test
+
+# Run E2E tests
+cd apps/dashboard && npx playwright test
+
+# E2E with UI
+npx playwright test --ui
 ```
 
 ---
