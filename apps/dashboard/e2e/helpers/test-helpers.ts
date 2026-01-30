@@ -22,6 +22,24 @@ export interface MockVideoJob {
     error?: string;
 }
 
+export interface MockTrendData {
+    id: string;
+    title: string;
+    subreddit: string;
+    category: string;
+    score: number;
+    upvoteRatio: number;
+    numComments: number;
+    createdUtc: number;
+    nes: number;
+    engagementVelocity: number;
+    controversyFactor: number;
+    ageHours: number;
+    sourceUrl: string;
+    permalink: string;
+    fetchedAt: string;
+}
+
 export interface MockApiResponses {
     videoGenerate?: Partial<MockVideoJob>;
     videoStatus?: Partial<MockVideoJob>;
@@ -30,6 +48,7 @@ export interface MockApiResponses {
         error?: string;
     };
     scriptsGenerate?: object;
+    trends?: MockTrendData[];
 }
 
 // =============================================================================
@@ -122,6 +141,162 @@ function createMockAudioBuffer(): ArrayBuffer {
         0x00, 0x00, 0x00, 0x00,
     ]);
     return header.buffer;
+}
+
+/**
+ * Generate mock trend data for testing
+ */
+function generateMockTrends(count: number = 10): MockTrendData[] {
+    const categories = [
+        { name: 'technology', subreddits: ['technology', 'programming', 'gadgets'] },
+        { name: 'finance', subreddits: ['wallstreetbets', 'investing', 'cryptocurrency'] },
+        { name: 'gaming', subreddits: ['gaming', 'pcgaming', 'games'] },
+        { name: 'entertainment', subreddits: ['movies', 'television', 'music'] },
+        { name: 'news', subreddits: ['news', 'worldnews', 'politics'] },
+    ];
+
+    const mockTitles: Record<string, string[]> = {
+        technology: [
+            'New AI breakthrough changes everything about machine learning',
+            'Apple announces revolutionary new product launching next month',
+            'Google reveals major update to search algorithm',
+            'Microsoft AI integration causing controversy in tech community',
+            'OpenAI releases GPT-5 with unprecedented capabilities',
+        ],
+        finance: [
+            'Bitcoin breaks all-time high amid market volatility',
+            'Fed announces unexpected interest rate decision',
+            'This stock is up 500% and still climbing',
+            'Major bank announces billions in quarterly losses',
+            'Cryptocurrency regulation incoming - what you need to know',
+        ],
+        gaming: [
+            'GTA 6 gameplay leak reveals stunning graphics',
+            'Nintendo announces surprise Direct for next week',
+            'Steam sale breaks all-time concurrent user records',
+            'Elden Ring DLC gets release date announcement',
+            'PlayStation exclusive coming to PC confirmed',
+        ],
+        entertainment: [
+            'Blockbuster movie sequel confirmed with original cast',
+            'Netflix cancels beloved show after 5 seasons',
+            'Oscars controversy sparks heated debate online',
+            'Popular band announces surprise reunion tour',
+            'Streaming wars heat up with new platform launch',
+        ],
+        news: [
+            'Breaking: Major policy change announced today',
+            'Scientists discover potential cure for common disease',
+            'International summit reaches historic agreement',
+            'Tech billionaire makes shocking announcement',
+            'Climate report reveals urgent findings',
+        ],
+    };
+
+    const trends: MockTrendData[] = [];
+    const now = Date.now();
+
+    for (let i = 0; i < count; i++) {
+        const categoryData = categories[i % categories.length];
+        const category = categoryData.name;
+        const subreddit = categoryData.subreddits[i % categoryData.subreddits.length];
+        const titles = mockTitles[category] || mockTitles.technology;
+        const title = titles[i % titles.length];
+
+        const score = Math.floor(Math.random() * 10000) + 1000;
+        const numComments = Math.floor(Math.random() * 500) + 50;
+        const ageHours = Math.random() * 24;
+
+        trends.push({
+            id: `mock-trend-${i}-${Date.now()}`,
+            title,
+            subreddit,
+            category,
+            score,
+            upvoteRatio: 0.85 + Math.random() * 0.1,
+            numComments,
+            createdUtc: Math.floor((now - ageHours * 3600000) / 1000),
+            nes: Math.floor(Math.random() * 80) + 20,
+            engagementVelocity: Math.random() * 100,
+            controversyFactor: Math.random() * 2,
+            ageHours,
+            sourceUrl: `https://reddit.com/r/${subreddit}/comments/${i}`,
+            permalink: `/r/${subreddit}/comments/mock${i}/`,
+            fetchedAt: new Date().toISOString(),
+        });
+    }
+
+    return trends;
+}
+
+/**
+ * Set up mock responses for trends API
+ * This enables tests to run without real API data
+ */
+export async function mockTrendsApi(page: Page, customTrends?: MockTrendData[]) {
+    const mockTrends = customTrends || generateMockTrends(20);
+
+    // Mock trends endpoint with category filtering
+    await page.route('**/api/trends**', async (route: Route) => {
+        const url = new URL(route.request().url());
+        const category = url.searchParams.get('category');
+        const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+
+        let filtered = mockTrends;
+
+        // Filter by category if specified
+        if (category) {
+            filtered = mockTrends.filter(t => t.category === category);
+        }
+
+        // Apply limit
+        filtered = filtered.slice(0, limit);
+
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: filtered,
+                timestamp: new Date().toISOString(),
+            }),
+        });
+    });
+
+    // Mock categories endpoint
+    await page.route('**/api/categories**', async (route: Route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: [
+                    { id: 'technology', label: 'Teknoloji', count: 7 },
+                    { id: 'finance', label: 'Finans', count: 5 },
+                    { id: 'gaming', label: 'Oyun', count: 4 },
+                    { id: 'entertainment', label: 'Eğlence', count: 6 },
+                    { id: 'news', label: 'Haberler', count: 3 },
+                ],
+                timestamp: new Date().toISOString(),
+            }),
+        });
+    });
+
+    // Mock status endpoint
+    await page.route('**/api/status**', async (route: Route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: {
+                    engine: { status: 'healthy', version: '1.24.0' },
+                    cache: { size: 100, hitRate: 0.85 },
+                },
+                timestamp: new Date().toISOString(),
+            }),
+        });
+    });
 }
 
 // =============================================================================
@@ -234,6 +409,114 @@ export function createConsoleLogger(page: Page) {
         getErrors: () => logs.filter(l => l.type === 'error'),
         clear: () => logs.length = 0,
     };
+}
+
+// =============================================================================
+// Script Generation Mock
+// =============================================================================
+
+/**
+ * Mock script generation API for video tests
+ * Returns realistic Turkish script content for all platforms
+ */
+export async function mockScriptsApi(page: Page) {
+    const mockScript = {
+        hook: 'Bu teknolojiyi duymadıysanız, çok şey kaçırıyorsunuz!',
+        body: 'Yapay zeka artık günlük hayatımızın vazgeçilmez bir parçası haline geldi. Son gelişmeler gösteriyor ki, bu teknoloji hayatımızı tamamen değiştirecek. Uzmanlar bu konuda hemfikir: gelecek yapay zekanın elinde.',
+        cta: 'Daha fazlası için takip edin ve bildirimleri açın!',
+        sections: [
+            { type: 'hook', text: 'Bu teknolojiyi duymadıysanız, çok şey kaçırıyorsunuz!' },
+            { type: 'body', text: 'Yapay zeka artık günlük hayatımızın vazgeçilmez bir parçası haline geldi.' },
+            { type: 'cta', text: 'Daha fazlası için takip edin ve bildirimleri açın!' }
+        ],
+        metadata: {
+            wordCount: 45,
+            estimatedDuration: 30,
+            platform: 'tiktok'
+        }
+    };
+
+    // Mock script generate endpoint
+    await page.route('**/api/scripts/generate**', async (route: Route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: {
+                    platform: 'tiktok',
+                    script: mockScript,
+                    platforms: {
+                        tiktok: { ...mockScript, platform: 'tiktok' },
+                        reels: { ...mockScript, platform: 'reels' },
+                        shorts: { ...mockScript, platform: 'shorts' }
+                    },
+                    generationTime: 1.5,
+                    model: 'gemini-2.0-flash'
+                },
+                timestamp: new Date().toISOString()
+            })
+        });
+    });
+
+    // Mock script iterate endpoint
+    await page.route('**/api/scripts/iterate**', async (route: Route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: {
+                    script: mockScript,
+                    changes: ['Hook made more engaging', 'CTA strengthened'],
+                    iteration: 1
+                },
+                timestamp: new Date().toISOString()
+            })
+        });
+    });
+}
+
+/**
+ * Mock images API for video tests
+ * Returns mock image URLs for visual selection
+ */
+export async function mockImagesApi(page: Page) {
+    const mockImages = Array.from({ length: 6 }, (_, i) => ({
+        id: `mock-image-${i}`,
+        url: `https://images.pexels.com/photos/${1000000 + i}/pexels-photo.jpeg`,
+        thumbnail: `https://images.pexels.com/photos/${1000000 + i}/pexels-photo-thumb.jpeg`,
+        photographer: 'Mock Photographer',
+        width: 1920,
+        height: 1080,
+        alt: `Mock image ${i + 1}`
+    }));
+
+    await page.route('**/api/images/**', async (route: Route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: {
+                    images: mockImages,
+                    total: 6,
+                    query: 'technology'
+                },
+                timestamp: new Date().toISOString()
+            })
+        });
+    });
+}
+
+/**
+ * Setup all mocks needed for video generation tests
+ */
+export async function mockVideoGenerationApis(page: Page) {
+    await mockTrendsApi(page);
+    await mockScriptsApi(page);
+    await mockImagesApi(page);
+    await mockVoiceApi(page);
 }
 
 // =============================================================================

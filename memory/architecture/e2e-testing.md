@@ -1,8 +1,8 @@
 # E2E Testing Architecture
 
-> **Module**: Phase 27 - Automated Testing Infrastructure  
-> **Version**: 1.24.0  
-> **Date**: 30 Ocak 2026
+> **Module**: Phase 27-28 - Automated Testing Infrastructure  
+> **Version**: 1.24.1  
+> **Date**: 31 Ocak 2026
 
 ---
 
@@ -278,6 +278,51 @@ useEffect(() => {
     }
 }, []); // Empty dependency array
 ```
+
+---
+
+## Known Issues & Solutions (Phase 28 Audit)
+
+### 1. CSS Opacity Hover Flakiness
+
+**Problem**: TrendCard script butonu opacity transition kullanıyor:
+```css
+sm:opacity-0 sm:group-hover:opacity-100
+```
+
+**Playwright Davranışı**:
+- `opacity: 0` → `toBeVisible()` başarısız
+- `hover()` sonrası transition tetiklenmeyebilir
+- 15+ test etkileniyor
+
+**Çözüm**:
+```typescript
+// ❌ WRONG - fails on opacity:0
+const scriptButton = page.locator('button:has-text("Script")');
+await expect(scriptButton).toBeVisible();
+await scriptButton.click();
+
+// ✅ CORRECT - bypasses opacity
+const scriptButton = trendCard.locator('[data-testid="generate-script-btn"]');
+await expect(scriptButton).toBeAttached();
+await scriptButton.click({ force: true });
+```
+
+**TrendCard.tsx Fix**:
+```tsx
+<button
+    title="AI ile script oluştur"
+    data-testid="generate-script-btn"  // ADD THIS
+>
+```
+
+### 2. Test Baseline (31 Ocak 2026)
+
+| Durum | Adet | Açıklama |
+|-------|------|----------|
+| ✅ PASSED | 7 | Dashboard temel testleri |
+| ⏭️ SKIPPED | 7 | Hover bağımlı (bilinçli skip) |
+| ❌ FAILED | 8 | Voice testleri (aynı kök neden) |
 
 ---
 
