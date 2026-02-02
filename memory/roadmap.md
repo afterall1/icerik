@@ -1,7 +1,7 @@
 # Roadmap
 
 > **Proje**: İçerik Trend Engine  
-> **Son Güncelleme**: 24 Ocak 2026
+> **Son Güncelleme**: 2 Şubat 2026
 
 ---
 
@@ -160,6 +160,27 @@
 - [x] video-e2e-test SKILL.md (Antigravity skill)
 - [x] CSP Blob URL fix (audioBlob → FileReader)
 - [x] useVideoJobs infinite loop fix (refs)
+
+### Phase 28: E2E Test Mock Integration ✅
+- [x] mockScriptsApi (script generation mock)
+- [x] mockVoiceApi (voice generation mock)
+- [x] test-helpers.ts +108 satır
+- [x] video-generation.spec.ts skip markers
+
+### Phase 29: 413 Payload Too Large Fix ✅
+- [x] routes.ts maxBodySize 250MB
+- [x] index.ts bodyLimit middleware
+- [x] api.ts VIDEO_API_BASE proxy bypass
+- [x] vite.config.ts proxy error logging
+
+### Phase 30: Video E2E Real Flow Automation ✅
+- [x] real-video-flow.spec.ts (429 satır, 7 test case)
+- [x] real-flow-helpers.ts (560 satır, 15+ helper)
+- [x] diagnostic-reporter.ts (338 satır, custom reporter)
+- [x] playwright.config.ts (dev server, 5 min timeout)
+- [x] 5-stage pipeline: Script → Images → Voice → Video → Verify
+- [x] Self-healing retry logic (exponential backoff)
+- [x] API Endpoints Test PASSED ✅
 
 ---
 

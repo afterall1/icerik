@@ -1,14 +1,14 @@
 # E2E Testing Architecture
 
-> **Module**: Phase 27-28 - Automated Testing Infrastructure  
-> **Version**: 1.24.1  
-> **Date**: 31 Ocak 2026
+> **Module**: Phase 27-30 - Automated Testing Infrastructure  
+> **Version**: 1.25.0  
+> **Date**: 2 Şubat 2026
 
 ---
 
 ## Overview
 
-Manuel test yükünü azaltmak için kapsamlı E2E test altyapısı. Playwright browser automation, API mocking, CI/CD pipeline ve Antigravity skill entegrasyonu.
+Manuel test yükünü azaltmak için kapsamlı E2E test altyapısı. Playwright browser automation, API mocking, **REAL API testing** (Phase 30), CI/CD pipeline ve Antigravity skill entegrasyonu.
 
 ---
 
@@ -17,20 +17,24 @@ Manuel test yükünü azaltmak için kapsamlı E2E test altyapısı. Playwright 
 ```
 apps/dashboard/
 ├── e2e/
-│   ├── dashboard.spec.ts        # Temel UI testleri (Phase 10)
-│   ├── video-generation.spec.ts # Video akışı E2E (Phase 27)
-│   ├── voice-generation.spec.ts # Ses üretimi testleri (Phase 27)
-│   └── helpers/
-│       └── test-helpers.ts      # API mock, wait utilities
-├── playwright.config.ts         # Playwright konfigürasyonu
-└── vitest.config.ts             # Unit test konfigürasyonu
+│   ├── dashboard.spec.ts         # Temel UI testleri (Phase 10)
+│   ├── video-generation.spec.ts  # Video akışı E2E - mocked (Phase 27)
+│   ├── voice-generation.spec.ts  # Ses üretimi testleri (Phase 27)
+│   ├── real-video-flow.spec.ts   # ✨ REAL API video E2E (Phase 30)
+│   ├── helpers/
+│   │   ├── test-helpers.ts       # API mock, wait utilities
+│   │   └── real-flow-helpers.ts  # ✨ Real API helpers (560 lines)
+│   └── reporters/
+│       └── diagnostic-reporter.ts # ✨ Custom reporter (338 lines)
+├── playwright.config.ts          # Playwright konfigürasyonu
+└── vitest.config.ts              # Unit test konfigürasyonu
 
 .github/workflows/
-└── e2e-tests.yml                # CI/CD pipeline
+└── e2e-tests.yml                 # CI/CD pipeline
 
 .agent/skills/
 └── video-e2e-test/
-    └── SKILL.md                 # Antigravity exploratory testing
+    └── SKILL.md                  # Antigravity exploratory testing
 ```
 
 ---
